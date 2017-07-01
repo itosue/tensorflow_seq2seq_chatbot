@@ -126,7 +126,7 @@ def train():
             #      show_progress("Training bucket_id={0}...".format(bucket_id))
 
             # Train!
-            _, average_perplexity, summary, _ = model.step(sess, encoder_inputs, decoder_inputs, target_weights, bucket_id, False)
+            _, average_perplexity, summary, _ = model.step(sess, encoder_inputs, decoder_inputs, target_weights, bucket_id, False, beam_search=False)
             #      show_progress("done {0}\n".format(average_perplexity))
 
             steps = steps + 1
