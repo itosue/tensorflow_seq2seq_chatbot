@@ -26,7 +26,7 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 import lib.data_utils as data_utils
-from my_seq2seq import * # todo
+from lib.seq2seq_r11 import * # todo
 
 class Seq2SeqModel(object):
   """Sequence-to-sequence model with attention and for multiple buckets.
@@ -129,7 +129,7 @@ class Seq2SeqModel(object):
         return tf.contrib.rnn.BasicLSTMCell(size)
     cell = single_cell()
     if num_layers > 1:
-      cell = tf.contrib.rnn.MultiRNNCell([single_cell() for _ in range(num_layers)])
+      cell = tf.contrib.rnn.MultiRNNCell([single_cell() for _ in range(num_layers)], state_is_tuple=False)
 
     # The seq2seq function: we use embedding for the input and attention.
 #    def seq2seq_f(encoder_inputs, decoder_inputs, do_decode):
@@ -149,7 +149,7 @@ class Seq2SeqModel(object):
         if attention:
             print("Attention Model")
             ## todo higepon replace
-            return tf.contrib.legacy_seq2seq.embedding_attention_seq2seq(
+            return embedding_attention_seq2seq(
                encoder_inputs, decoder_inputs, cell,
                num_encoder_symbols=source_vocab_size,
                num_decoder_symbols=target_vocab_size,
@@ -161,7 +161,7 @@ class Seq2SeqModel(object):
         else:
             print("Simple Model")
             ## todo higepon replace
-            return tf.contrib.legacy_seq2seq.embedding_rnn_seq2seq(
+            return embedding_rnn_seq2seq(
               encoder_inputs, decoder_inputs, cell,
               num_encoder_symbols=source_vocab_size,
               num_decoder_symbols=target_vocab_size,
@@ -221,7 +221,7 @@ class Seq2SeqModel(object):
 #              for output in self.outputs[b]
 #          ]
     else:
-      self.outputs, self.losses = tf.contrib.legacy_seq2seq.model_with_buckets(
+      self.outputs, self.losses = model_with_buckets(
           self.encoder_inputs, self.decoder_inputs, targets,
           self.target_weights, buckets,
           lambda x, y: seq2seq_f(x, y, False),
@@ -309,8 +309,8 @@ class Seq2SeqModel(object):
             output_feed.append(self.beam_symbol[bucket_id])
         else:
             output_feed = [self.losses[bucket_id], self.valid_loss_summaries[bucket_id]]  # Loss for this batch.
-      for l in xrange(decoder_size):  # Output logits.
-        output_feed.append(self.outputs[bucket_id][l])
+        for l in xrange(decoder_size):  # Output logits.
+            output_feed.append(self.outputs[bucket_id][l])
 
     outputs = session.run(output_feed, input_feed)
     if not forward_only:

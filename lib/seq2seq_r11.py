@@ -74,6 +74,7 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import nn_ops
 from tensorflow.python.ops import variable_scope
 from tensorflow.python.util import nest
+import tensorflow as tf
 
 # TODO(ebrevdo): Remove once _linear is fully deprecated.
 linear = core_rnn_cell_impl._linear  # pylint: disable=protected-access
@@ -246,7 +247,7 @@ def beam_rnn_decoder(decoder_inputs, initial_state, cell, loop_function=None,
                 variable_scope.get_variable_scope().reuse_variables()
 
             input_size = inp.get_shape().with_rank(2)[1]
-            print input_size
+            print(input_size)
             x = inp
             output, state = cell(x, state)
 
@@ -256,11 +257,11 @@ def beam_rnn_decoder(decoder_inputs, initial_state, cell, loop_function=None,
                 states = []
                 for kk in range(beam_size):
                     states.append(state)
-                state = tf.reshape(tf.concat(0, states), [-1, state_size])
+                state = tf.reshape(tf.concat(states, 0), [-1, state_size])
 
             outputs.append(tf.argmax(nn_ops.xw_plus_b(
                 output, output_projection[0], output_projection[1]), dimension=1))
-    return outputs, state, tf.reshape(tf.concat(0, beam_path), [-1, beam_size]), tf.reshape(tf.concat(0, beam_symbols),
+    return outputs, state, tf.reshape(tf.concat(beam_path, 0), [-1, beam_size]), tf.reshape(tf.concat(beam_symbols, 0),
                                                                                             [-1, beam_size])
 
 def basic_rnn_seq2seq(encoder_inputs,
@@ -918,14 +919,13 @@ def beam_attention_decoder(decoder_inputs, initial_state, attention_states, cell
             v.append(variable_scope.get_variable("AttnV_%d" % a,
                                                  [attention_vec_size]))
 
-        print
-        "Initial_state"
+        print("Initial_state")
 
         state_size = int(initial_state.get_shape().with_rank(2)[1])
         states = []
         for kk in range(1):
             states.append(initial_state)
-        state = tf.reshape(tf.concat(0, states), [-1, state_size])
+        state = tf.reshape(tf.concat(states, 0), [-1, state_size])
 
         def attention(query):
             """Put attention masks on hidden using hidden_features and query."""
@@ -948,7 +948,7 @@ def beam_attention_decoder(decoder_inputs, initial_state, attention_states, cell
 
         outputs = []
         prev = None
-        batch_attn_size = array_ops.pack([batch_size, attn_size])
+        batch_attn_size = array_ops.stack([batch_size, attn_size])
         attns = [array_ops.zeros(batch_attn_size, dtype=dtype)
                  for _ in xrange(num_heads)]
         for a in attns:  # Ensure the second shape of attention vectors is set.
@@ -957,7 +957,7 @@ def beam_attention_decoder(decoder_inputs, initial_state, attention_states, cell
         if initial_state_attention:
             attns = []
             attns.append(attention(initial_state))
-            tmp = tf.reshape(tf.concat(0, attns), [-1, attn_size])
+            tmp = tf.reshape(tf.concat(attns, 0), [-1, attn_size])
             attns = []
             attns.append(tmp)
 
@@ -992,15 +992,15 @@ def beam_attention_decoder(decoder_inputs, initial_state, attention_states, cell
                 states = []
                 for kk in range(beam_size):
                     states.append(state)
-                state = tf.reshape(tf.concat(0, states), [-1, state_size])
+                state = tf.reshape(tf.concat(states, 0), [-1, state_size])
                 with variable_scope.variable_scope(variable_scope.get_variable_scope(), reuse=True):
                     attns = attention(state)
 
             outputs.append(tf.argmax(nn_ops.xw_plus_b(
                 output, output_projection[0], output_projection[1]), dimension=1))
 
-    return outputs, state, tf.reshape(tf.concat(0, beam_path), [-1, beam_size]), tf.reshape(tf.concat(0, beam_symbols),
-
+    return outputs, state, tf.reshape(tf.concat(beam_path, 0), [-1, beam_size]), tf.reshape(tf.concat(beam_symbols, 0),
+                                                                                            [-1, beam_size])
 
 def embedding_attention_decoder(decoder_inputs,
                                 initial_state,
@@ -1193,7 +1193,8 @@ def embedding_attention_seq2seq(encoder_inputs,
           output_projection=output_projection,
           feed_previous=feed_previous,
           initial_state_attention=initial_state_attention,
-          beam_size = beam_size)
+          beam_search=beam_search,
+          beam_size=beam_size)
 
     # If feed_previous is a Tensor, we construct 2 graphs and use cond.
     def decoder(feed_previous_bool):

@@ -62,7 +62,8 @@ def create_or_restore_model(session, buckets, forward_only):
                                        config.BATCH_SIZE,
                                        config.LEARNING_RATE,
                                        config.LEARNING_RATE_DECAY_FACTOR,
-                                       forward_only=forward_only)
+                                       forward_only=forward_only,
+                                       beam_search=False)
 
     print("model initialized")
     ckpt = tf.train.get_checkpoint_state(config.GENERATED_DIR)
