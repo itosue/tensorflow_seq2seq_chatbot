@@ -63,7 +63,7 @@ def create_or_restore_model(session, buckets, forward_only):
                                        config.LEARNING_RATE,
                                        config.LEARNING_RATE_DECAY_FACTOR,
                                        forward_only=forward_only,
-                                       beam_search=False)
+                                       beam_search=config.is_beam_search_enabled)
 
     print("model initialized")
     ckpt = tf.train.get_checkpoint_state(config.GENERATED_DIR)
@@ -126,7 +126,7 @@ def train():
             #      show_progress("Training bucket_id={0}...".format(bucket_id))
 
             # Train!
-            _, average_perplexity, summary, _ = model.step(sess, encoder_inputs, decoder_inputs, target_weights, bucket_id, False, beam_search=False)
+            _, average_perplexity, summary, _ = model.step(sess, encoder_inputs, decoder_inputs, target_weights, bucket_id, False, beam_search=config.is_beam_search_enabled)
             #      show_progress("done {0}\n".format(average_perplexity))
 
             steps = steps + 1
@@ -156,7 +156,7 @@ def train():
                     print("  eval: empty bucket %d" % bucket_id)
                     continue
                 encoder_inputs, decoder_inputs, target_weights = model.get_batch(valid_set, bucket_id)
-                _, average_perplexity, valid_summary, _ = model.step(sess, encoder_inputs, decoder_inputs, target_weights, bucket_id, True)
+                _, average_perplexity, valid_summary, _ = model.step(sess, encoder_inputs, decoder_inputs, target_weights, bucket_id, True, beam_search=config.is_beam_search_enabled)
                 writer.add_summary(valid_summary, steps)
                 eval_ppx = math.exp(average_perplexity) if average_perplexity < 300 else float('inf')
                 print("  eval: bucket %d perplexity %.2f" % (bucket_id, eval_ppx))

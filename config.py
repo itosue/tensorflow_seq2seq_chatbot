@@ -2,6 +2,7 @@ GENERATED_DIR = "/Users/higepon/Desktop/generated"
 LOGS_DIR = "/Users/higepon/Desktop/train_logs"
 
 is_fast_build = False
+is_beam_search_enabled = False
 
 DATA_DIR = "data"
 if is_fast_build:

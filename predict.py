@@ -13,7 +13,7 @@ def get_prediction(session, model, enc_vocab, rev_dec_vocab, text):
                          if config.buckets[b][0] > len(token_ids)])
         encoder_inputs, decoder_inputs, target_weights = model.get_batch({bucket_id: [(token_ids, [])]}, bucket_id)
         _, _, _, output_logits = model.step(session, encoder_inputs, decoder_inputs,
-                                            target_weights, bucket_id, True)
+                                            target_weights, bucket_id, True, beam_search=config.is_beam_search_enabled)
         outputs = [int(np.argmax(logit, axis=1)) for logit in output_logits]
         if data_processer.EOS_ID in outputs:
             outputs = outputs[:outputs.index(data_processer.EOS_ID)]
