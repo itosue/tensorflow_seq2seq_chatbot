@@ -26,7 +26,7 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 import lib.data_utils as data_utils
-
+from my_seq2seq import * # todo
 
 class Seq2SeqModel(object):
   """Sequence-to-sequence model with attention and for multiple buckets.
@@ -56,7 +56,10 @@ class Seq2SeqModel(object):
                use_lstm=False,
                num_samples=512,
                forward_only=False,
-               dtype=tf.float32):
+               dtype=tf.float32,
+               beam_search=True,
+               beam_size=10,
+               attention=True):
     """Create the model.
 
     Args:
@@ -129,17 +132,44 @@ class Seq2SeqModel(object):
       cell = tf.contrib.rnn.MultiRNNCell([single_cell() for _ in range(num_layers)])
 
     # The seq2seq function: we use embedding for the input and attention.
+#    def seq2seq_f(encoder_inputs, decoder_inputs, do_decode):
+#      return tf.contrib.legacy_seq2seq.embedding_attention_seq2seq(
+#          encoder_inputs,
+#          decoder_inputs,
+#          cell,
+#          num_encoder_symbols=source_vocab_size,
+#          num_decoder_symbols=target_vocab_size,
+#          embedding_size=size,
+#          output_projection=output_projection,
+#          feed_previous=do_decode,
+#          dtype=dtype)
+
+    # The seq2seq function: we use embedding for the input and attention.
     def seq2seq_f(encoder_inputs, decoder_inputs, do_decode):
-      return tf.contrib.legacy_seq2seq.embedding_attention_seq2seq(
-          encoder_inputs,
-          decoder_inputs,
-          cell,
-          num_encoder_symbols=source_vocab_size,
-          num_decoder_symbols=target_vocab_size,
-          embedding_size=size,
-          output_projection=output_projection,
-          feed_previous=do_decode,
-          dtype=dtype)
+        if attention:
+            print("Attention Model")
+            ## todo higepon replace
+            return tf.contrib.legacy_seq2seq.embedding_attention_seq2seq(
+               encoder_inputs, decoder_inputs, cell,
+               num_encoder_symbols=source_vocab_size,
+               num_decoder_symbols=target_vocab_size,
+               embedding_size=size,
+               output_projection=output_projection,
+               feed_previous=do_decode,
+               beam_search=beam_search,
+               beam_size=beam_size )
+        else:
+            print("Simple Model")
+            ## todo higepon replace
+            return tf.contrib.legacy_seq2seq.embedding_rnn_seq2seq(
+              encoder_inputs, decoder_inputs, cell,
+              num_encoder_symbols=source_vocab_size,
+              num_decoder_symbols=target_vocab_size,
+              embedding_size=size,
+              output_projection=output_projection,
+              feed_previous=do_decode,
+              beam_search=beam_search,
+              beam_size=beam_size )
 
     # Feeds for inputs.
     self.encoder_inputs = []
@@ -160,17 +190,36 @@ class Seq2SeqModel(object):
 
     # Training outputs and losses.
     if forward_only:
-      self.outputs, self.losses = tf.contrib.legacy_seq2seq.model_with_buckets(
-          self.encoder_inputs, self.decoder_inputs, targets,
-          self.target_weights, buckets, lambda x, y: seq2seq_f(x, y, True),
-          softmax_loss_function=softmax_loss_function)
+        if beam_search:
+              self.outputs, self.beam_path, self.beam_symbol = decode_model_with_buckets(
+                  self.encoder_inputs, self.decoder_inputs, targets,
+                  self.target_weights, buckets, lambda x, y: seq2seq_f(x, y, True),
+                  softmax_loss_function=softmax_loss_function)
+        else:
+              # print self.decoder_inputs
+              self.outputs, self.losses = tf.contrib.legacy_seq2seq.model_with_buckets(
+                  self.encoder_inputs, self.decoder_inputs, targets,
+                  self.target_weights, buckets, lambda x, y: seq2seq_f(x, y, True),
+                  softmax_loss_function=softmax_loss_function)
+              # If we use output projection, we need to project outputs for decoding.
+              if output_projection is not None:
+                    for b in xrange(len(buckets)):
+                      self.outputs[b] = [
+                          tf.matmul(output, output_projection[0]) + output_projection[1]
+                          for output in self.outputs[b]
+                      ]
+#    if forward_only:
+#      self.outputs, self.losses = tf.contrib.legacy_seq2seq.model_with_buckets(
+#          self.encoder_inputs, self.decoder_inputs, targets,
+#          self.target_weights, buckets, lambda x, y: seq2seq_f(x, y, True),
+#          softmax_loss_function=softmax_loss_function)
       # If we use output projection, we need to project outputs for decoding.
-      if output_projection is not None:
-        for b in xrange(len(buckets)):
-          self.outputs[b] = [
-              tf.matmul(output, output_projection[0]) + output_projection[1]
-              for output in self.outputs[b]
-          ]
+#      if output_projection is not None:
+#        for b in xrange(len(buckets)):
+#          self.outputs[b] = [
+#              tf.matmul(output, output_projection[0]) + output_projection[1]
+#              for output in self.outputs[b]
+#          ]
     else:
       self.outputs, self.losses = tf.contrib.legacy_seq2seq.model_with_buckets(
           self.encoder_inputs, self.decoder_inputs, targets,
@@ -205,7 +254,7 @@ class Seq2SeqModel(object):
     self.saver = tf.train.Saver(tf.global_variables())
 
   def step(self, session, encoder_inputs, decoder_inputs, target_weights,
-           bucket_id, forward_only):
+           bucket_id, forward_only, beam_search):
     """Run a step of the model feeding the given inputs.
 
     Args:
@@ -255,7 +304,11 @@ class Seq2SeqModel(object):
                      self.losses[bucket_id],  # Loss for this batch.
                      self.train_loss_summaries[bucket_id]]  # summary for logging
     else:
-      output_feed = [self.losses[bucket_id], self.valid_loss_summaries[bucket_id]]  # Loss for this batch.
+        if beam_search:
+            output_feed = [self.beam_path[bucket_id], self.valid_loss_summaries[bucket_id]]  # Loss for this batch.
+            output_feed.append(self.beam_symbol[bucket_id])
+        else:
+            output_feed = [self.losses[bucket_id], self.valid_loss_summaries[bucket_id]]  # Loss for this batch.
       for l in xrange(decoder_size):  # Output logits.
         output_feed.append(self.outputs[bucket_id][l])
 
@@ -263,7 +316,11 @@ class Seq2SeqModel(object):
     if not forward_only:
       return outputs[1], outputs[2], outputs[3], None  # Gradient norm, loss, summary no outputs.
     else:
-      return None, outputs[0], outputs[1], outputs[2:]  # No gradient norm, loss, outputs.
+      if beam_search:
+          return outputs[0], outputs[1], outputs[2], outputs[3:]  # No gradient norm, loss, outputs.
+      else:
+          return None, outputs[0], outputs[1], outputs[2:]  # No gradient norm, loss, outputs.
+
 
   def get_batch(self, data, bucket_id):
     """Get a random batch of data from the specified bucket, prepare for step.
