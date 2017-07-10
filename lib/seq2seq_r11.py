@@ -152,7 +152,9 @@ def _extract_beam_search(embedding, beam_size, num_symbols, embedding_size,  out
         # embedding_lookup.
 
         emb_prev = embedding_ops.embedding_lookup(embedding, symbols)
-        emb_prev  = tf.reshape(emb_prev ,[beam_size ,embedding_size])
+#        emb_prev  = tf.reshape(emb_prev ,[beam_size ,embedding_size])
+        ## 7/9
+        emb_prev = tf.reshape(emb_prev, [-1, embedding_size])
         # emb_prev = embedding_ops.embedding_lookup(embedding, symbols)
         if not update_embedding:
             emb_prev = array_ops.stop_gradient(emb_prev)
@@ -930,6 +932,15 @@ def beam_attention_decoder(decoder_inputs, initial_state, attention_states, cell
         def attention(query):
             """Put attention masks on hidden using hidden_features and query."""
             ds = []  # Results of attention reads will be stored here.
+            ### try this higepon
+#            if nest.is_sequence(query):  # If the query is a tuple, flatten it.
+#                query_list = nest.flatten(query)
+#                for q in query_list:  # Check that ndims == 2 if specified.
+#                    ndims = q.get_shape().ndims
+#                    if ndims:
+#                        assert ndims == 2
+#                query = array_ops.concat(query_list, 1)
+            ## try this higepon end
             for a in xrange(num_heads):
                 with variable_scope.variable_scope("Attention_%d" % a):
                     y = linear(query, attention_vec_size, True)
@@ -995,9 +1006,11 @@ def beam_attention_decoder(decoder_inputs, initial_state, attention_states, cell
                 state = tf.reshape(tf.concat(states, 0), [-1, state_size])
                 with variable_scope.variable_scope(variable_scope.get_variable_scope(), reuse=True):
                     attns = attention(state)
-
-            outputs.append(tf.argmax(nn_ops.xw_plus_b(
-                output, output_projection[0], output_projection[1]), dimension=1))
+            # added by higepon 7/7/2016
+            outputs.append(output)
+# removed by higepon 7/7/2016
+#            outputs.append(tf.argmax(nn_ops.xw_plus_b(
+#                output, output_projection[0], output_projection[1]), dimension=1))
 
     return outputs, state, tf.reshape(tf.concat(beam_path, 0), [-1, beam_size]), tf.reshape(tf.concat(beam_symbols, 0),
                                                                                             [-1, beam_size])
@@ -1077,7 +1090,7 @@ def embedding_attention_decoder(decoder_inputs,
     if beam_search:
         loop_function = _extract_beam_search(
             embedding, beam_size, num_symbols, embedding_size, output_projection,
-            update_embedding_for_previous)
+            update_embedding_for_previous) #if feed_previous else None
     else:
         loop_function = _extract_argmax_and_embed(
             embedding, output_projection,
@@ -1395,6 +1408,7 @@ def sequence_loss_by_example(logits,
                       logits + targets + weights):
     log_perp_list = []
     for logit, target, weight in zip(logits, targets, weights):
+      print(logit.shape, target.shape, weight.shape)
       if softmax_loss_function is None:
         # TODO(irving,ebrevdo): This reshape is needed because
         # sequence_loss_by_example is called with scalars sometimes, which
@@ -1442,9 +1456,9 @@ def sequence_loss(logits,
   with ops.name_scope(name, "sequence_loss", logits + targets + weights):
     cost = math_ops.reduce_sum(
         sequence_loss_by_example(
-            logits,
-            targets,
-            weights,
+            logits=logits,
+            targets=targets,
+            weights=weights,
             average_across_timesteps=average_across_timesteps,
             softmax_loss_function=softmax_loss_function))
     if average_across_batch:
@@ -1508,6 +1522,7 @@ def model_with_buckets(encoder_inputs,
     raise ValueError("Length of weights (%d) must be at least that of last"
                      "bucket (%d)." % (len(weights), buckets[-1][1]))
 
+  # This is only for scope
   all_inputs = encoder_inputs + decoder_inputs + targets + weights
   losses = []
   outputs = []
@@ -1515,7 +1530,8 @@ def model_with_buckets(encoder_inputs,
     for j, bucket in enumerate(buckets):
       with variable_scope.variable_scope(
           variable_scope.get_variable_scope(), reuse=True if j > 0 else None):
-        bucket_outputs, _ = seq2seq(encoder_inputs[:bucket[0]],
+        # output comes from actual seq2seq
+        bucket_outputs, *_ = seq2seq(encoder_inputs[:bucket[0]],
                                     decoder_inputs[:bucket[1]])
         outputs.append(bucket_outputs)
         if per_example_loss:
@@ -1528,9 +1544,9 @@ def model_with_buckets(encoder_inputs,
         else:
           losses.append(
               sequence_loss(
-                  outputs[-1],
-                  targets[:bucket[1]],
-                  weights[:bucket[1]],
+                  logits=outputs[-1],
+                  targets=targets[:bucket[1]],
+                  weights=weights[:bucket[1]],
                   softmax_loss_function=softmax_loss_function))
 
   return outputs, losses

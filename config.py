@@ -1,8 +1,8 @@
 GENERATED_DIR = "/Users/higepon/Desktop/generated"
 LOGS_DIR = "/Users/higepon/Desktop/train_logs"
 
-is_fast_build = False
-is_beam_search_enabled = False
+is_fast_build = True
+is_beam_search_enabled = True
 
 DATA_DIR = "data"
 if is_fast_build:
@@ -11,15 +11,15 @@ else:
     TWEETS_TXT = "{0}/tweets.txt".format(DATA_DIR)
 
 if is_fast_build:
-    MAX_ENC_VOCABULARY = 5
+    MAX_ENC_VOCABULARY = 6
     NUM_LAYERS = 1
     LAYER_SIZE = 2
-    BATCH_SIZE = 2
-    buckets = [(5, 10), (8, 13)]
+    BATCH_SIZE = 3
+    buckets = [(4, 13), (8, 14)]
 else:
     MAX_ENC_VOCABULARY = 50000
     NUM_LAYERS = 3
-    LAYER_SIZE = 256
+    LAYER_SIZE = 256 ## embed_size
     BATCH_SIZE = 64
     buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
 

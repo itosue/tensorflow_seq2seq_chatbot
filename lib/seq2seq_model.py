@@ -58,7 +58,7 @@ class Seq2SeqModel(object):
                forward_only=False,
                dtype=tf.float32,
                beam_search=True,
-               beam_size=10,
+               beam_size=5,
                attention=True):
     """Create the model.
 
@@ -103,6 +103,7 @@ class Seq2SeqModel(object):
       b = tf.get_variable("proj_b", [self.target_vocab_size], dtype=dtype)
       output_projection = (w, b)
 
+      # this is necessary for huge # of classes softmax classifier
       def sampled_loss(labels, logits):
         labels = tf.reshape(labels, [-1, 1])
         # We need to compute the sampled_softmax_loss using 32bit floats to
@@ -110,6 +111,13 @@ class Seq2SeqModel(object):
         local_w_t = tf.cast(w_t, tf.float32)
         local_b = tf.cast(b, tf.float32)
         local_inputs = tf.cast(logits, tf.float32)
+        # weights = [num_classes, dim]
+        # bias = [num_classes]
+        # labels = [batch_size, num_true(=1 choose 1)]
+        #  batch 0: [5] this char should be index=5
+        # inputs = [batch_size, dim]
+        #  batch 0: [vector representation of input 0]
+        # return: A batch_size 1-D tensor of per-example sampled softmax losses.
         return tf.cast(
             tf.nn.sampled_softmax_loss(
                 weights=local_w_t,
@@ -175,6 +183,7 @@ class Seq2SeqModel(object):
     self.encoder_inputs = []
     self.decoder_inputs = []
     self.target_weights = []
+    ## for each encoder input
     for i in xrange(buckets[-1][0]):  # Last bucket is the biggest one.
       self.encoder_inputs.append(tf.placeholder(tf.int32, shape=[None],
                                                 name="encoder{0}".format(i)))
@@ -195,6 +204,13 @@ class Seq2SeqModel(object):
                   self.encoder_inputs, self.decoder_inputs, targets,
                   self.target_weights, buckets, lambda x, y: seq2seq_f(x, y, True),
                   softmax_loss_function=softmax_loss_function)
+              ## Added by higepon 7/7/2016
+              if output_projection is not None:
+                    for b in range(len(buckets)):
+                      self.outputs[b] = [
+                          tf.matmul(output, output_projection[0]) + output_projection[1]
+                          for output in self.outputs[b]
+                          ]
         else:
               # print self.decoder_inputs
               self.outputs, self.losses = tf.contrib.legacy_seq2seq.model_with_buckets(
@@ -221,11 +237,12 @@ class Seq2SeqModel(object):
 #              for output in self.outputs[b]
 #          ]
     else:
-      self.outputs, self.losses = model_with_buckets(
-          self.encoder_inputs, self.decoder_inputs, targets,
-          self.target_weights, buckets,
-          lambda x, y: seq2seq_f(x, y, False),
-          softmax_loss_function=softmax_loss_function)
+       # training
+       self.outputs, self.losses = model_with_buckets(
+           self.encoder_inputs, self.decoder_inputs, targets,
+           self.target_weights, buckets,
+           lambda x, y: seq2seq_f(x, y, False),
+           softmax_loss_function=softmax_loss_function)
 
     self.train_loss_summaries = []
     for i in range(len(self.losses)):
