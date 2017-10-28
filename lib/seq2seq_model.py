@@ -81,7 +81,7 @@ class Seq2SeqModel(object):
                                             self.target_vocab_size)
       softmax_loss_function = sampled_loss
     # Create the internal multi-layer cell for our RNN.
-    print('###### tf.get_variable_scope().reuse : {}'.format(tf.get_variable_scope().reuse))
+#    print('###### tf.get_variable_scope().reuse : {}'.format(tf.get_variable_scope().reuse))
     def gru_cell():
       return tf.contrib.rnn.core_rnn_cell.GRUCell(size, reuse=tf.get_variable_scope().reuse)#tf.get_variable_scope().reuse
     def lstm_cell():
@@ -95,11 +95,11 @@ class Seq2SeqModel(object):
       cell_2 = tf.contrib.rnn.core_rnn_cell.MultiRNNCell([single_cell() for _ in range(num_layers)], state_is_tuple=False)
 
     # The seq2seq function: we use embedding for the input and attention.
-    print('##### num_layers: {} #####'.format(num_layers))
-    print('##### {} #####'.format(output_projection))
+#    print('##### num_layers: {} #####'.format(num_layers))
+#    print('##### {} #####'.format(output_projection))
     def seq2seq_f(encoder_inputs, decoder_inputs, do_decode):
         if attention:
-            print("Attention Model")
+#            print("Attention Model")
             return embedding_attention_seq2seq(
                encoder_inputs, decoder_inputs, cell_1, cell_2,
                num_encoder_symbols=source_vocab_size,
@@ -110,7 +110,7 @@ class Seq2SeqModel(object):
                beam_search=beam_search,
                beam_size=beam_size )
         else:
-            print("Simple Model")
+#            print("Simple Model")
             return embedding_rnn_seq2seq(
               encoder_inputs, decoder_inputs, cell,
               num_encoder_symbols=source_vocab_size,

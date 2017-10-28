@@ -87,10 +87,8 @@ def get_beam_serch_prediction(session, model, enc_vocab, rev_dec_vocab, text):
 class EasyPredictor:
     def __init__(self, session):
         self.session = session
-        train.show_progress("Creating model...")
         self.model = train.create_or_restore_model(self.session, config.buckets, forward_only=True, beam_search=config.beam_search, beam_size=config.beam_size)
         self.model.batch_size = 1
-        train.show_progress("done\n")
         self.enc_vocab, _ = data_processer.initialize_vocabulary(config.VOCAB_ENC_TXT)
         _, self.rev_dec_vocab = data_processer.initialize_vocabulary(config.VOCAB_DEC_TXT)
 

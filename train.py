@@ -65,7 +65,7 @@ def read_data_into_buckets(enc_path, dec_path, buckets):
                     break
             tweet, reply = ef.readline(), df.readline()
     for bucket_id in range(len(buckets)):
-        print("{}={}=".format(buckets[bucket_id], len(data_set[bucket_id])))
+        print("  bucket{} size={}".format(buckets[bucket_id], len(data_set[bucket_id])))
     return data_set
 
 
@@ -73,7 +73,7 @@ def read_data_into_buckets(enc_path, dec_path, buckets):
 def create_or_restore_model(session, buckets, forward_only, beam_search, beam_size):
     # beam search is off for training
     """Create model and initialize or load parameters"""
-
+    print("creating model...", flush=True)
     num_samples = 1024
     if config.is_fast_build:
         num_samples = config.MAX_ENC_VOCABULARY - 1
@@ -93,13 +93,12 @@ def create_or_restore_model(session, buckets, forward_only, beam_search, beam_si
                                        forward_only=forward_only,
                                        beam_size=beam_size)
 
-    print("model initialized")
     ckpt = tf.train.get_checkpoint_state(config.GENERATED_DIR)
     # the checkpoint filename has changed in recent versions of tensorflow
     checkpoint_suffix = ".index"
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path + checkpoint_suffix):
-        print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
         model.saver.restore(session, ckpt.model_checkpoint_path)
+        print("Loaded model parameters from %s" % ckpt.model_checkpoint_path)
     else:
         print("Created model with fresh parameters.")
         session.run(tf.global_variables_initializer())
@@ -121,19 +120,17 @@ def train():
     # with tf.Session(config=tf_config) as sess:
     with tf.Session() as sess:
 
-        show_progress("Setting up data set for each buckets...")
+        show_progress("Setting up data set for each buckets...\n")
         train_set = read_data_into_buckets(config.TWEETS_TRAIN_ENC_IDX_TXT, config.TWEETS_TRAIN_DEC_IDX_TXT,
                                            config.buckets)
         valid_set = read_data_into_buckets(config.TWEETS_VAL_ENC_IDX_TXT, config.TWEETS_VAL_DEC_IDX_TXT, config.buckets)
         show_progress("done\n")
 
-        show_progress("Creating model...")
         # False for train
         beam_search = False
         model = create_or_restore_model(sess, config.buckets, forward_only=False, beam_search=beam_search,
                                         beam_size=config.beam_size)
 
-        show_progress("done\n")
 
         # list of # of data in ith bucket
         train_bucket_sizes = [len(train_set[b]) for b in range(len(config.buckets))]
@@ -144,7 +141,7 @@ def train():
         train_buckets_scale = [sum(train_bucket_sizes[:i + 1]) / train_total_size
                                for i in range(len(train_bucket_sizes))]
 
-        show_progress("before train loop")
+
         # Train Loop
         steps = 0
         previous_perplexities = []
@@ -179,7 +176,7 @@ def train():
 
             # check point
             checkpoint_path = os.path.join(config.GENERATED_DIR, "seq2seq.ckpt")
-            show_progress("Saving checkpoint...")
+            show_progress("\nSaving checkpoint...\n")
             model.saver.save(sess, checkpoint_path, global_step=model.global_step)
             show_progress("done\n")
 

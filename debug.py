@@ -15,34 +15,13 @@ import train
 # command line flag
 
 
-def show_progress(text):
-    sys.stdout.write(text)
-    sys.stdout.flush()
-
-# assume training files are ready
-
-
-def main():
-    # with tf.Session(config=tf_config) as sess:
+def main(argv):
     with tf.Session() as sess:
-        show_progress("Setting up data set for each buckets...")
-        train_set = train.read_data_into_buckets(config.TWEETS_TRAIN_ENC_IDX_TXT, config.TWEETS_TRAIN_DEC_IDX_TXT,
-                                                 config.buckets)
-        valid_set = train.read_data_into_buckets(config.TWEETS_VAL_ENC_IDX_TXT, config.TWEETS_VAL_DEC_IDX_TXT,
-                                                 config.buckets)
-        show_progress("done\n")
-
-        show_progress("Creating model...")
         # False for train
         beam_search = False
         model = train.create_or_restore_model(sess, config.buckets, forward_only=False, beam_search=beam_search,
                                               beam_size=config.beam_size)
-
-        show_progress("{} done\n", model)
-
-def main(argv):
-    print(config.is_fast_build)
-
+        print(model)
 
 if __name__ == '__main__':
     tf.app.run()
