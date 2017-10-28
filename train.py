@@ -1,10 +1,11 @@
-import config
+import math
 import os
 import sys
-import math
-import random
+
 import numpy as np
 import tensorflow as tf
+
+import config
 import data_processer
 import lib.seq2seq_model as seq2seq_model
 
@@ -12,6 +13,25 @@ import lib.seq2seq_model as seq2seq_model
 def show_progress(text):
     sys.stdout.write(text)
     sys.stdout.flush()
+
+
+# P(reply|tweet)
+def log_prob(session, model, enc_vocab, rev_dec_vocab, tweet, reply):
+    tweet_token_ids = data_processer.sentence_to_token_ids(tweet, enc_vocab)
+    reply_token_ids = data_processer.sentence_to_token_ids(reply, rev_dec_vocab)
+    bucket_id = min([b for b in range(len(config.buckets))
+                     if config.buckets[b][0] > len(tweet_token_ids) and config.buckets[b][1] >= len(reply_token_ids)])
+    encoder_inputs, decoder_inputs, target_weights = model.get_batch({bucket_id: [(tweet_token_ids, reply_token_ids)]},
+                                                                     bucket_id)
+
+    _, _, output_logits = model.step(session, encoder_inputs, decoder_inputs,
+                                     target_weights, bucket_id, forward_only=True, beam_search=False)
+
+    outputs = [int(np.argmax(logit, axis=1)) for logit in output_logits]
+    if data_processer.EOS_ID in outputs:
+        outputs = outputs[:outputs.index(data_processer.EOS_ID)]
+    text = "".join([tf.compat.as_str(rev_dec_vocab[output]) for output in outputs])
+    return text
 
 
 def read_data_into_buckets(enc_path, dec_path, buckets):
@@ -51,7 +71,6 @@ def read_data_into_buckets(enc_path, dec_path, buckets):
 
 # Originally from https://github.com/1228337123/tensorflow-seq2seq-chatbot
 def create_or_restore_model(session, buckets, forward_only, beam_search, beam_size):
-
     # beam search is off for training
     """Create model and initialize or load parameters"""
 
@@ -90,22 +109,24 @@ def next_random_bucket_id(buckets_scale):
 
 def train():
     # Only allocate 2/3 of the gpu memory to allow for running gpu-based predictions while training:
-#    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.666)
-#    tf_config = tf.ConfigProto(gpu_options=gpu_options)
-#    tf_config.gpu_options.allocator_type = 'BFC'
+    #    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.666)
+    #    tf_config = tf.ConfigProto(gpu_options=gpu_options)
+    #    tf_config.gpu_options.allocator_type = 'BFC'
 
-    #with tf.Session(config=tf_config) as sess:
+    # with tf.Session(config=tf_config) as sess:
     with tf.Session() as sess:
 
         show_progress("Setting up data set for each buckets...")
-        train_set = read_data_into_buckets(config.TWEETS_TRAIN_ENC_IDX_TXT, config.TWEETS_TRAIN_DEC_IDX_TXT, config.buckets)
+        train_set = read_data_into_buckets(config.TWEETS_TRAIN_ENC_IDX_TXT, config.TWEETS_TRAIN_DEC_IDX_TXT,
+                                           config.buckets)
         valid_set = read_data_into_buckets(config.TWEETS_VAL_ENC_IDX_TXT, config.TWEETS_VAL_DEC_IDX_TXT, config.buckets)
         show_progress("done\n")
 
         show_progress("Creating model...")
         # False for train
         beam_search = False
-        model = create_or_restore_model(sess, config.buckets, forward_only=False, beam_search=beam_search, beam_size=config.beam_size)
+        model = create_or_restore_model(sess, config.buckets, forward_only=False, beam_search=beam_search,
+                                        beam_size=config.beam_size)
 
         show_progress("done\n")
 
@@ -126,17 +147,17 @@ def train():
 
         while True:
             bucket_id = next_random_bucket_id(train_buckets_scale)
-#            print(bucket_id)
+            #            print(bucket_id)
 
             # Get batch
             encoder_inputs, decoder_inputs, target_weights = model.get_batch(train_set, bucket_id)
             #      show_progress("Training bucket_id={0}...".format(bucket_id))
 
             # Train!
-#            _, average_perplexity, _ = model.step(sess, encoder_inputs, decoder_inputs, target_weights,
-#                                                           bucket_id,
-#                                                           forward_only=False,
-#                                                           beam_search=beam_search)
+            #            _, average_perplexity, _ = model.step(sess, encoder_inputs, decoder_inputs, target_weights,
+            #                                                           bucket_id,
+            #                                                           forward_only=False,
+            #                                                           beam_search=beam_search)
             _, average_perplexity, summary, _ = model.step(sess, encoder_inputs, decoder_inputs, target_weights,
                                                            bucket_id,
                                                            forward_only=False,
@@ -158,8 +179,8 @@ def train():
             show_progress("done\n")
 
             perplexity = math.exp(average_perplexity) if average_perplexity < 300 else float('inf')
-            print ("global step %d learning rate %.4f perplexity "
-                   "%.2f" % (model.global_step.eval(), model.learning_rate.eval(), perplexity))
+            print("global step %d learning rate %.4f perplexity "
+                  "%.2f" % (model.global_step.eval(), model.learning_rate.eval(), perplexity))
 
             # Decrease learning rate if no improvement was seen over last 3 times.
             if len(previous_perplexities) > 2 and perplexity > max(previous_perplexities[-3:]):
@@ -171,11 +192,14 @@ def train():
                     print("  eval: empty bucket %d" % bucket_id)
                     continue
                 encoder_inputs, decoder_inputs, target_weights = model.get_batch(valid_set, bucket_id)
-#                _, average_perplexity, _ = model.step(sess, encoder_inputs, decoder_inputs, target_weights, bucket_id, True, beam_search=beam_search)
-                _, average_perplexity, valid_summary, _ = model.step(sess, encoder_inputs, decoder_inputs, target_weights, bucket_id, True, beam_search=beam_search)
+                #                _, average_perplexity, _ = model.step(sess, encoder_inputs, decoder_inputs, target_weights, bucket_id, True, beam_search=beam_search)
+                _, average_perplexity, valid_summary, _ = model.step(sess, encoder_inputs, decoder_inputs,
+                                                                     target_weights, bucket_id, True,
+                                                                     beam_search=beam_search)
                 writer.add_summary(valid_summary, steps)
                 eval_ppx = math.exp(average_perplexity) if average_perplexity < 300 else float('inf')
                 print("  eval: bucket %d perplexity %.2f" % (bucket_id, eval_ppx))
+
 
 if __name__ == '__main__':
     train()
