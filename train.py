@@ -74,9 +74,14 @@ def create_or_restore_model(session, buckets, forward_only, beam_search, beam_si
     # beam search is off for training
     """Create model and initialize or load parameters"""
 
+    num_samples = 1024
+    if config.is_fast_build:
+        num_samples = config.MAX_ENC_VOCABULARY - 1
+
     model = seq2seq_model.Seq2SeqModel(source_vocab_size=config.MAX_ENC_VOCABULARY,
                                        target_vocab_size=config.MAX_DEC_VOCABULARY,
                                        buckets=buckets,
+                                       num_samples=num_samples,
                                        size=config.LAYER_SIZE,
                                        num_layers=config.NUM_LAYERS,
                                        max_gradient_norm=config.MAX_GRADIENT_NORM,
@@ -200,6 +205,8 @@ def train():
                 eval_ppx = math.exp(average_perplexity) if average_perplexity < 300 else float('inf')
                 print("  eval: bucket %d perplexity %.2f" % (bucket_id, eval_ppx))
 
+def main(argv):
+    train()
 
 if __name__ == '__main__':
-    train()
+    tf.app.run()

@@ -1,6 +1,7 @@
 import re
 import tensorflow as tf
 import config
+import os
 # For Japanese tokenizer
 import MeCab
 from tensorflow.python.platform import gfile
@@ -240,7 +241,9 @@ def create_vocabulary(source_path, vocabulary_path, max_vocabulary_size, tokeniz
         print("\n")
 
 
-if __name__ == '__main__':
+def main(argv):
+    if not os.path.exists(config.GENERATED_DIR):
+        os.makedirs(config.GENERATED_DIR)
     print("Splitting into tweets and replies...")
     split_tweets_replies(config.TWEETS_TXT, TWEETS_ENC_TXT, TWEETS_DEC_TXT)
     print("Done")
@@ -261,3 +264,7 @@ if __name__ == '__main__':
     data_to_token_ids(TWEETS_VAL_ENC_TXT, TWEETS_VAL_ENC_IDX_TXT, config.VOCAB_ENC_TXT)
     data_to_token_ids(TWEETS_VAL_DEC_TXT, TWEETS_VAL_DEC_IDX_TXT, config.VOCAB_DEC_TXT)
     print("Done")
+
+
+if __name__ == '__main__':
+    tf.app.run()

@@ -65,6 +65,8 @@ class Seq2SeqModel(object):
     output_projection = None
     softmax_loss_function = None
     # Sampled softmax only makes sense if we sample less than vocabulary size.
+    # higepon
+    assert (num_samples < self.target_vocab_size)
     if num_samples > 0 and num_samples < self.target_vocab_size:
       with tf.device("/cpu:0"):
         w = tf.get_variable("proj_w", [size, self.target_vocab_size])

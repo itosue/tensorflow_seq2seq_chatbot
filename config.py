@@ -1,14 +1,34 @@
 import os
+import tensorflow as tf
 from sys import platform
 
+tf.app.flags.DEFINE_boolean("use_small_data", False, "Use small data set if True")
+
+FLAGS = tf.app.flags.FLAGS
+
+is_fast_build = FLAGS.use_small_data
+
+if is_fast_build:
+    MAX_ENC_VOCABULARY = 5
+    NUM_LAYERS = 2
+    LAYER_SIZE = 1
+    BATCH_SIZE = 2
+    buckets = [(5, 10)]
+else:
+    MAX_ENC_VOCABULARY = 50000
+    NUM_LAYERS = 3
+    LAYER_SIZE = 1024
+    BATCH_SIZE = 128
+    buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
+
+
 if platform == 'linux':
-    GENERATED_DIR = os.getenv("HOME") + "/chatbot_generated"
+    GENERATED_DIR = os.getenv("HOME") + "/chatbot_generated/vocab_{}".format(MAX_ENC_VOCABULARY)
     LOGS_DIR = os.getenv("HOME") + "/chatbot_train_logs"
 else:
-    GENERATED_DIR = os.getenv("HOME") + "/Dropbox/tensorflow_seq2seq_chatbot/chatbot_generated"
+    GENERATED_DIR = os.getenv("HOME") + "/Dropbox/tensorflow_seq2seq_chatbot/chatbot_generated/vocab_{}".format(MAX_ENC_VOCABULARY)
     LOGS_DIR = os.getenv("HOME") + "/chatbot_train_logs"
 
-is_fast_build = False
 beam_search = True
 beam_size = 20
 
@@ -18,18 +38,6 @@ if is_fast_build:
 else:
     TWEETS_TXT = "{0}/tweets1M.txt".format(DATA_DIR)
 
-if is_fast_build:
-    MAX_ENC_VOCABULARY = 5
-    NUM_LAYERS = 2
-    LAYER_SIZE = 2
-    BATCH_SIZE = 2
-    buckets = [(5, 10), (8, 13)]
-else:
-    MAX_ENC_VOCABULARY = 50000
-    NUM_LAYERS = 3
-    LAYER_SIZE = 1024
-    BATCH_SIZE = 128
-    buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
 
 MAX_DEC_VOCABULARY = MAX_ENC_VOCABULARY
 

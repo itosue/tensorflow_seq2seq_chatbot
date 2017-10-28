@@ -8,6 +8,7 @@ import train
 
 # todo
 # add comment about this
+# flag for processing small data set
 # make it work
 # commit
 # redup
@@ -39,6 +40,9 @@ def main():
 
         show_progress("{} done\n", model)
 
+def main(argv):
+    print(config.is_fast_build)
+
 
 if __name__ == '__main__':
-    main()
+    tf.app.run()
