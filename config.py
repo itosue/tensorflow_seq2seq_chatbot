@@ -9,7 +9,7 @@ FLAGS = tf.app.flags.FLAGS
 is_fast_build = FLAGS.use_small_data
 
 if is_fast_build:
-    MAX_ENC_VOCABULARY = 5
+    MAX_ENC_VOCABULARY = 20 # this should be >= 20
     NUM_LAYERS = 2
     LAYER_SIZE = 1
     BATCH_SIZE = 2

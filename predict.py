@@ -125,5 +125,9 @@ def predict():
             sys.stdout.flush()
             line = sys.stdin.readline()
 
-if __name__ == '__main__':
+
+def main(argv):
     predict()
+
+if __name__ == '__main__':
+    tf.app.run()
