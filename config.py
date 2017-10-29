@@ -11,26 +11,29 @@ is_fast_build = FLAGS.use_small_data
 if is_fast_build:
     MAX_ENC_VOCABULARY = 20 # this should be >= 20
     NUM_LAYERS = 2
-    LAYER_SIZE = 1
-    BATCH_SIZE = 2
+    LAYER_SIZE = 3
+    BATCH_SIZE = 4
     buckets = [(5, 10)]
+    beam_search = False
+    beam_size = 2
 else:
     MAX_ENC_VOCABULARY = 50000
     NUM_LAYERS = 3
     LAYER_SIZE = 1024
     BATCH_SIZE = 128
     buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
+    beam_search = True
+    beam_size = 20
+
 
 
 if platform == 'linux':
-    GENERATED_DIR = os.getenv("HOME") + "/chatbot_generated/vocab_{}".format(MAX_ENC_VOCABULARY)
+    GENERATED_DIR = os.getenv("HOME") + "/chatbot_generated/vocab_{}_layer_{}".format(MAX_ENC_VOCABULARY, LAYER_SIZE)
     LOGS_DIR = os.getenv("HOME") + "/chatbot_train_logs"
 else:
-    GENERATED_DIR = os.getenv("HOME") + "/Dropbox/tensorflow_seq2seq_chatbot/chatbot_generated/vocab_{}".format(MAX_ENC_VOCABULARY)
+    GENERATED_DIR = os.getenv("HOME") + "/Dropbox/tensorflow_seq2seq_chatbot/chatbot_generated/vocab_{}_layer_{}".format(MAX_ENC_VOCABULARY, LAYER_SIZE)
     LOGS_DIR = os.getenv("HOME") + "/chatbot_train_logs"
 
-beam_search = True
-beam_size = 20
 
 DATA_DIR = "data"
 if is_fast_build:
