@@ -168,6 +168,13 @@ class Seq2SeqModel(object):
           self.target_weights, buckets,
           lambda x, y: seq2seq_f(x, y, False),
           softmax_loss_function=softmax_loss_function)
+      # higepon: I believe this is necessary otherwise output looks strange
+      # If we use output projection, we need to project outputs for decoding.
+      if output_projection is not None:
+          for b in xrange(len(buckets)):
+              self.outputs[b] = [
+                  tf.matmul(output, output_projection[0]) + output_projection[1]
+                  for output in self.outputs[b]]
 
     self.train_loss_summaries = []
     self.forward_only_loss_summaries = []
