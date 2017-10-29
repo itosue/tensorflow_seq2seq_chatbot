@@ -124,7 +124,7 @@ def predict():
             line = sys.stdin.readline()
 
 
-def main(argv):
+def main(_):
     predict()
 
 if __name__ == '__main__':

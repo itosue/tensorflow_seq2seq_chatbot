@@ -214,7 +214,8 @@ def train():
                 eval_ppx = math.exp(average_perplexity) if average_perplexity < 300 else float('inf')
                 print("  eval: bucket %d perplexity %.2f" % (bucket_id, eval_ppx))
 
-def main(argv):
+
+def main(_):
     train()
 
 if __name__ == '__main__':
