@@ -199,6 +199,29 @@ class Seq2SeqModel(object):
 
     self.saver = tf.train.Saver(tf.global_variables())
 
+  @staticmethod
+  def softmax(x):
+      return np.exp(x) / np.sum(np.exp(x), axis=0)
+
+
+  def log_prob(self, session, model, tweet_token_ids, reply_token_ids):
+      bucket_id = min([b for b in range(len(self.buckets))
+                       if self.buckets[b][0] > len(tweet_token_ids) and self.buckets[b][1] >= len(reply_token_ids)])
+      encoder_inputs, decoder_inputs, target_weights = model.get_batch({bucket_id: [(tweet_token_ids, [])]},
+                                                                       bucket_id)
+      _, _, _, output_logits = model.step(session, encoder_inputs, decoder_inputs,
+                                          target_weights, bucket_id, forward_only=True, beam_search=False)
+#      tf.assert_equal(output_logits[0].shape, (config.BATCH_SIZE, config.MAX_ENC_VOCABULARY))
+
+      # transpose this, so that output_logits[0][1] is data for 0th batch and 1st token.
+      output_logits_t = np.transpose(output_logits, (1, 0, 2))
+      # In this case, we only need nth batch.
+      logits = output_logits_t[0]
+      prob = 1
+      for logit, token_id in zip(logits, reply_token_ids):
+          prob = prob * self.softmax(logit)[token_id]
+      return np.log(prob) / len(reply_token_ids)
+
   def step(self, session, encoder_inputs, decoder_inputs, target_weights,
            bucket_id, forward_only, beam_search):
     """Run a step of the model feeding the given inputs.

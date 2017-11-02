@@ -9,17 +9,18 @@ FLAGS = tf.app.flags.FLAGS
 is_fast_build = FLAGS.use_small_data
 
 if is_fast_build:
-    MAX_ENC_VOCABULARY = 500# this should be >= 20
-    NUM_LAYERS = 3
-    LAYER_SIZE = 1024
-    BATCH_SIZE = 4
-    buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
+    # this is for testing with real data
+#    MAX_ENC_VOCABULARY = 500# this should be >= 20
+#    NUM_LAYERS = 3
+#    LAYER_SIZE = 1024
+#    BATCH_SIZE = 4
+#    buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
     # this is too minimum, but useful for quick debug
-    #MAX_ENC_VOCABULARY = 20 # this should be >= 20
-    #NUM_LAYERS = 2
-    #LAYER_SIZE = 3
-    #BATCH_SIZE = 4
-    #buckets = [(5, 10)]
+    MAX_ENC_VOCABULARY = 20 # this should be >= 20
+    NUM_LAYERS = 2
+    LAYER_SIZE = 3
+    BATCH_SIZE = 4
+    buckets = [(5, 10)]
     beam_search = False
     beam_size = 2
 else:
