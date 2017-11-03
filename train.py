@@ -148,7 +148,7 @@ def train():
             #                                                           bucket_id,
             #                                                           forward_only=False,
             #                                                           beam_search=beam_search)
-            _, average_perplexity, summary, _ = model.step(sess, encoder_inputs, decoder_inputs, target_weights,
+            _, average_perplexity, summary, _ = model.step_with_rewards(sess, encoder_inputs, decoder_inputs, target_weights,
                                                            bucket_id,
                                                            forward_only=False,
                                                            beam_search=beam_search)
