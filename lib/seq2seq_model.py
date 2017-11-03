@@ -121,7 +121,6 @@ class Seq2SeqModel(object):
               beam_search=beam_search,
               beam_size=beam_size )
 
-
     # Feeds for inputs.
     self.encoder_inputs = []
     self.decoder_inputs = []
@@ -134,6 +133,8 @@ class Seq2SeqModel(object):
                                                 name="decoder{0}".format(i)))
       self.target_weights.append(tf.placeholder(tf.float32, shape=[None],
                                                 name="weight{0}".format(i)))
+
+    self.rewards = [tf.placeholder(tf.float32, name="reward{0}".format(i)) for i in xrange(len(self.buckets))]
 
     # Our targets are decoder inputs shifted by one.
     targets = [self.decoder_inputs[i + 1]
@@ -190,7 +191,8 @@ class Seq2SeqModel(object):
       self.updates = []
       opt = tf.train.GradientDescentOptimizer(self.learning_rate)
       for b in xrange(len(buckets)):
-        gradients = tf.gradients(self.losses[b], params)
+        adjusted_losses = tf.mul(self.losses[b], self.rewards[b])
+        gradients = tf.gradients(adjusted_losses, params)
         clipped_gradients, norm = tf.clip_by_global_norm(gradients,
                                                          max_gradient_norm)
         self.gradient_norms.append(norm)
@@ -201,7 +203,7 @@ class Seq2SeqModel(object):
 
   def reward_for_length(self, decoder_inputs):
       return [len(decoder_input) for decoder_input in decoder_inputs]
-  
+
 
   @staticmethod
   def softmax(x):
@@ -265,6 +267,8 @@ class Seq2SeqModel(object):
     for l in xrange(decoder_size):
       input_feed[self.decoder_inputs[l].name] = decoder_inputs[l]
       input_feed[self.target_weights[l].name] = target_weights[l]
+
+    rewards = self.reward_for_length(decoder_inputs)
 
     # Since our targets are decoder inputs shifted by one, we need one more.
     last_target = self.decoder_inputs[decoder_size].name
