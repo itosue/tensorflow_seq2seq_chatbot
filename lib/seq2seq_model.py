@@ -199,6 +199,10 @@ class Seq2SeqModel(object):
 
     self.saver = tf.train.Saver(tf.global_variables())
 
+  def reward_for_length(self, decoder_inputs):
+      return [len(decoder_input) for decoder_input in decoder_inputs]
+  
+
   @staticmethod
   def softmax(x):
       return np.exp(x) / np.sum(np.exp(x), axis=0)
