@@ -3,6 +3,7 @@ import tensorflow as tf
 from sys import platform
 
 tf.app.flags.DEFINE_boolean("use_small_data", False, "Use small data set if True")
+tf.app.flags.DEFINE_boolean("use_swapped_data", False, "Swap tweet and reply")
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -32,13 +33,15 @@ else:
     beam_search = True
     beam_size = 20
 
-
+BASE_GENERATED_DIR = "chatbot_generated/vocab_{}_layer_{}".format(MAX_ENC_VOCABULARY, LAYER_SIZE)
+if FLAGS.use_swapped_data:
+    BASE_GENERATED_DIR = BASE_GENERATED_DIR + "_swapped"
 
 if platform == 'linux':
-    GENERATED_DIR = os.getenv("HOME") + "/chatbot_generated/vocab_{}_layer_{}".format(MAX_ENC_VOCABULARY, LAYER_SIZE)
+    GENERATED_DIR = os.getenv("HOME") + "/" + BASE_GENERATED_DIR
     LOGS_DIR = os.getenv("HOME") + "/chatbot_train_logs"
 else:
-    GENERATED_DIR = os.getenv("HOME") + "/Dropbox/tensorflow_seq2seq_chatbot/chatbot_generated/vocab_{}_layer_{}".format(MAX_ENC_VOCABULARY, LAYER_SIZE)
+    GENERATED_DIR = os.getenv("HOME") + "/Dropbox/tensorflow_seq2seq_chatbot/" + BASE_GENERATED_DIR
     LOGS_DIR = os.getenv("HOME") + "/chatbot_train_logs"
 
 

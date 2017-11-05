@@ -245,7 +245,12 @@ def main(argv):
     if not os.path.exists(config.GENERATED_DIR):
         os.makedirs(config.GENERATED_DIR)
     print("Splitting into tweets and replies...")
-    split_tweets_replies(config.TWEETS_TXT, TWEETS_ENC_TXT, TWEETS_DEC_TXT)
+
+    if tf.app.flags.FLAGS.use_swapped_data:
+        print("using swapped data")
+        split_tweets_replies(config.TWEETS_TXT, TWEETS_DEC_TXT, TWEETS_ENC_TXT)
+    else:
+        split_tweets_replies(config.TWEETS_TXT, TWEETS_ENC_TXT, TWEETS_DEC_TXT)
     print("Done")
 
     print("Splitting into train and validation data...")
