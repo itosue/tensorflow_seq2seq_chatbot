@@ -58,7 +58,7 @@ def read_data_into_buckets(enc_path, dec_path, buckets):
 
 
 # Originally from https://github.com/1228337123/tensorflow-seq2seq-chatbot
-def create_or_restore_model(session, buckets, forward_only, beam_search, beam_size):
+def create_or_restore_model(session, buckets, forward_only, beam_search, beam_size, use_swapped_data=False):
     # beam search is off for training
     """Create model and initialize or load parameters"""
     print("Creating model...", flush=True)
@@ -81,7 +81,7 @@ def create_or_restore_model(session, buckets, forward_only, beam_search, beam_si
                                        forward_only=forward_only,
                                        beam_size=beam_size)
 
-    ckpt = tf.train.get_checkpoint_state(config.GENERATED_DIR)
+    ckpt = tf.train.get_checkpoint_state(config.generated_dir())
     # the checkpoint filename has changed in recent versions of tensorflow
     checkpoint_suffix = ".index"
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path + checkpoint_suffix):
@@ -163,7 +163,7 @@ def train():
                 continue
 
             # check point
-            checkpoint_path = os.path.join(config.GENERATED_DIR, "seq2seq.ckpt")
+            checkpoint_path = os.path.join(config.generated_dir(), "seq2seq.ckpt")
             show_progress("\nSaving checkpoint...\n")
             model.saver.save(sess, checkpoint_path, global_step=model.global_step)
             show_progress("done\n")

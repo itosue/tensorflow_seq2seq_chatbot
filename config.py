@@ -33,16 +33,27 @@ else:
     beam_search = True
     beam_size = 20
 
-BASE_GENERATED_DIR = "chatbot_generated/vocab_{}_layer_{}".format(MAX_ENC_VOCABULARY, LAYER_SIZE)
-if FLAGS.use_swapped_data:
-    BASE_GENERATED_DIR = BASE_GENERATED_DIR + "_swapped"
 
-if platform == 'linux':
-    GENERATED_DIR = os.getenv("HOME") + "/" + BASE_GENERATED_DIR
-    LOGS_DIR = os.getenv("HOME") + "/chatbot_train_logs"
-else:
-    GENERATED_DIR = os.getenv("HOME") + "/Dropbox/tensorflow_seq2seq_chatbot/" + BASE_GENERATED_DIR
-    LOGS_DIR = os.getenv("HOME") + "/chatbot_train_logs"
+def generated_dir(use_swapped_data=tf.app.flags.FLAGS.use_swapped_data):
+    base_dir = "chatbot_generated/vocab_{}_layer_{}".format(MAX_ENC_VOCABULARY, LAYER_SIZE)
+    if use_swapped_data:
+        base_dir = base_dir + "_swapped"
+
+    if platform == 'linux':
+        ret = os.getenv("HOME") + "/" + base_dir
+    else:
+        ret = os.getenv("HOME") + "/Dropbox/tensorflow_seq2seq_chatbot/" + base_dir
+    return ret
+
+
+def logs_dir():
+    if platform == 'linux':
+        ret = os.getenv("HOME") + "/chatbot_train_logs"
+    else:
+        ret = os.getenv("HOME") + "/chatbot_train_logs"
+    if FLAGS.use_swapped_data:
+        ret = ret + "_swapped"
+    return ret
 
 
 DATA_DIR = "data"
@@ -58,10 +69,10 @@ LEARNING_RATE = 0.5
 LEARNING_RATE_DECAY_FACTOR = 0.99
 MAX_GRADIENT_NORM = 5.0
 
-TWEETS_TRAIN_ENC_IDX_TXT = "{0}/tweets_train_enc_idx.txt".format(GENERATED_DIR)
-TWEETS_TRAIN_DEC_IDX_TXT = "{0}/tweets_train_dec_idx.txt".format(GENERATED_DIR)
-TWEETS_VAL_ENC_IDX_TXT = "{0}/tweets_val_enc_idx.txt".format(GENERATED_DIR)
-TWEETS_VAL_DEC_IDX_TXT = "{0}/tweets_val_dec_idx.txt".format(GENERATED_DIR)
+TWEETS_TRAIN_ENC_IDX_TXT = "{0}/tweets_train_enc_idx.txt".format(generated_dir())
+TWEETS_TRAIN_DEC_IDX_TXT = "{0}/tweets_train_dec_idx.txt".format(generated_dir())
+TWEETS_VAL_ENC_IDX_TXT = "{0}/tweets_val_enc_idx.txt".format(generated_dir())
+TWEETS_VAL_DEC_IDX_TXT = "{0}/tweets_val_dec_idx.txt".format(generated_dir())
 
-VOCAB_ENC_TXT = "{0}/vocab_enc.txt".format(GENERATED_DIR)
-VOCAB_DEC_TXT = "{0}/vocab_dec.txt".format(GENERATED_DIR)
+VOCAB_ENC_TXT = "{0}/vocab_enc.txt".format(generated_dir())
+VOCAB_DEC_TXT = "{0}/vocab_dec.txt".format(generated_dir())

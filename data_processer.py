@@ -44,16 +44,16 @@ from tensorflow.python.platform import gfile
 
 import sys
 
-TWEETS_ENC_TXT = "{0}/tweets_enc.txt".format(config.GENERATED_DIR)
-TWEETS_DEC_TXT = "{0}/tweets_dec.txt".format(config.GENERATED_DIR)
+TWEETS_ENC_TXT = "{0}/tweets_enc.txt".format(config.generated_dir())
+TWEETS_DEC_TXT = "{0}/tweets_dec.txt".format(config.generated_dir())
 
-TWEETS_TRAIN_ENC_TXT = "{0}/tweets_train_enc.txt".format(config.GENERATED_DIR)
-TWEETS_TRAIN_DEC_TXT = "{0}/tweets_train_dec.txt".format(config.GENERATED_DIR)
+TWEETS_TRAIN_ENC_TXT = "{0}/tweets_train_enc.txt".format(config.generated_dir())
+TWEETS_TRAIN_DEC_TXT = "{0}/tweets_train_dec.txt".format(config.generated_dir())
 
-TWEETS_VAL_ENC_TXT = "{0}/tweets_val_enc.txt".format(config.GENERATED_DIR)
-TWEETS_VAL_DEC_TXT = "{0}/tweets_val_dec.txt".format(config.GENERATED_DIR)
-TWEETS_VAL_ENC_IDX_TXT = "{0}/tweets_val_enc_idx.txt".format(config.GENERATED_DIR)
-TWEETS_VAL_DEC_IDX_TXT = "{0}/tweets_val_dec_idx.txt".format(config.GENERATED_DIR)
+TWEETS_VAL_ENC_TXT = "{0}/tweets_val_enc.txt".format(config.generated_dir())
+TWEETS_VAL_DEC_TXT = "{0}/tweets_val_dec.txt".format(config.generated_dir())
+TWEETS_VAL_ENC_IDX_TXT = "{0}/tweets_val_enc_idx.txt".format(config.generated_dir())
+TWEETS_VAL_DEC_IDX_TXT = "{0}/tweets_val_dec_idx.txt".format(config.generated_dir())
 
 DIGIT_RE = re.compile(r"\d")
 
@@ -242,8 +242,8 @@ def create_vocabulary(source_path, vocabulary_path, max_vocabulary_size, tokeniz
 
 
 def main(argv):
-    if not os.path.exists(config.GENERATED_DIR):
-        os.makedirs(config.GENERATED_DIR)
+    if not os.path.exists(config.generated_dir()):
+        os.makedirs(config.generated_dir())
     print("Splitting into tweets and replies...")
 
     if tf.app.flags.FLAGS.use_swapped_data:
