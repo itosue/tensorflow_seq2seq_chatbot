@@ -46,7 +46,7 @@ DATA_DIR = "data"
 if is_fast_build:
     TWEETS_TXT = "{0}/tweets_short.txt".format(DATA_DIR)
 else:
-    TWEETS_TXT = "{0}/tweets1M.txt".format(DATA_DIR)
+    TWEETS_TXT = "{0}/tweets3M.txt".format(DATA_DIR)
 
 
 MAX_DEC_VOCABULARY = MAX_ENC_VOCABULARY
