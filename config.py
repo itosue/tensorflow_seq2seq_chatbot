@@ -13,7 +13,7 @@ if is_fast_build:
     MAX_ENC_VOCABULARY = 500# this should be >= 20
     NUM_LAYERS = 3
     LAYER_SIZE = 1024
-    BATCH_SIZE = 4
+    BATCH_SIZE = 16
     buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
     # this is too minimum, but useful for quick debug
 #    MAX_ENC_VOCABULARY = 20 # this should be >= 20

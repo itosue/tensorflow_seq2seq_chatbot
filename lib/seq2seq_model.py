@@ -199,17 +199,26 @@ class Seq2SeqModel(object):
         self.updates.append(opt.apply_gradients(
             zip(clipped_gradients, params), global_step=self.global_step))
 
-    self.saver = tf.train.Saver(tf.global_variables())
+    self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=1)
 
   def rewards_for_length(self, decoder_inputs):
 #      [print(((decoder_input.tolist().index(
 #          data_processer.EOS_ID)) if data_processer.EOS_ID in decoder_input.tolist() else len(decoder_input)) / len(decoder_input)) for
 #       decoder_input in decoder_inputs]
 
-      reward_for_bucket = sum([decoder_input.tolist().index(data_processer.EOS_ID) if data_processer.EOS_ID in decoder_input.tolist else len(decoder_input) for decoder_input in decoder_inputs])
+      rewards = []
+      for input in decoder_inputs:
+          input_list = input.tolist()
+          if data_processer.EOS_ID in input_list:
+              reward = input_list.index(data_processer.EOS_ID)
+          else:
+              reward = len(input_list)
+          reward = reward / len(input_list)
+          rewards.append(reward)
 
+      mean = np.mean(rewards)
       # all bucket has same reward
-      return [reward_for_bucket for _ in xrange(len(self.buckets))]
+      return [mean for _ in xrange(len(self.buckets))]
 
   @staticmethod
   def softmax(x):
