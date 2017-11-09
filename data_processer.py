@@ -44,17 +44,6 @@ from tensorflow.python.platform import gfile
 
 import sys
 
-TWEETS_ENC_TXT = "{0}/tweets_enc.txt".format(config.generated_dir())
-TWEETS_DEC_TXT = "{0}/tweets_dec.txt".format(config.generated_dir())
-
-TWEETS_TRAIN_ENC_TXT = "{0}/tweets_train_enc.txt".format(config.generated_dir())
-TWEETS_TRAIN_DEC_TXT = "{0}/tweets_train_dec.txt".format(config.generated_dir())
-
-TWEETS_VAL_ENC_TXT = "{0}/tweets_val_enc.txt".format(config.generated_dir())
-TWEETS_VAL_DEC_TXT = "{0}/tweets_val_dec.txt".format(config.generated_dir())
-TWEETS_VAL_ENC_IDX_TXT = "{0}/tweets_val_enc_idx.txt".format(config.generated_dir())
-TWEETS_VAL_DEC_IDX_TXT = "{0}/tweets_val_dec_idx.txt".format(config.generated_dir())
-
 DIGIT_RE = re.compile(r"\d")
 
 _PAD = "_PAD"
@@ -175,7 +164,7 @@ def data_to_token_ids(data_path, target_path, vocabulary_path,
             with gfile.GFile(target_path, mode="wb") as tokens_file:  # edit w to wb
                 counter = 0
                 for line in data_file:
-#                    line = tf.compat.as_bytes(line)  # added by Ken
+                    #                    line = tf.compat.as_bytes(line)  # added by Ken
                     counter += 1
                     if counter % 100000 == 0:
                         print("  tokenizing line %d" % counter)
@@ -241,33 +230,61 @@ def create_vocabulary(source_path, vocabulary_path, max_vocabulary_size, tokeniz
         print("\n")
 
 
-def main(argv):
-    if not os.path.exists(config.generated_dir()):
-        os.makedirs(config.generated_dir())
+def main(_):
+    use_swapped_data = tf.app.flags.FLAGS.use_swapped_data
+    data_config = config.DataConfig(use_swapped_data=use_swapped_data)
+
+    if not os.path.exists(data_config.generated_dir()):
+        os.makedirs(data_config.generated_dir())
     print("Splitting into tweets and replies...")
 
-    if tf.app.flags.FLAGS.use_swapped_data:
+    if use_swapped_data:
         print("using swapped data")
-        split_tweets_replies(config.TWEETS_TXT, TWEETS_DEC_TXT, TWEETS_ENC_TXT)
+        split_tweets_replies(config.TWEETS_TXT,
+                             data_config.tweets_dec_txt(),
+                             data_config.tweets_enc_txt())
     else:
-        split_tweets_replies(config.TWEETS_TXT, TWEETS_ENC_TXT, TWEETS_DEC_TXT)
+        split_tweets_replies(config.TWEETS_TXT,
+                             data_config.tweets_enc_txt(),
+                             data_config.tweets_dec_txt())
     print("Done")
 
     print("Splitting into train and validation data...")
-    create_train_validation(TWEETS_ENC_TXT, TWEETS_TRAIN_ENC_TXT, TWEETS_VAL_ENC_TXT)
-    create_train_validation(TWEETS_DEC_TXT, TWEETS_TRAIN_DEC_TXT, TWEETS_VAL_DEC_TXT)
+    create_train_validation(data_config.tweets_enc_txt(),
+                            data_config.tweets_train_enc_txt(),
+                            data_config.tweets_val_enc_txt())
+
+    create_train_validation(data_config.tweets_dec_txt(),
+                            data_config.tweets_train_dec_txt(),
+                            data_config.tweets_val_dec_txt())
     print("Done")
 
     print("Creating vocabulary files...")
-    create_vocabulary(TWEETS_ENC_TXT, config.VOCAB_ENC_TXT, config.MAX_ENC_VOCABULARY)
-    create_vocabulary(TWEETS_DEC_TXT, config.VOCAB_DEC_TXT, config.MAX_DEC_VOCABULARY)
+    create_vocabulary(data_config.tweets_enc_txt(),
+                      data_config.vocab_enc_txt(),
+                      config.MAX_ENC_VOCABULARY)
+
+    create_vocabulary(data_config.tweets_dec_txt(),
+                      data_config.vocab_dec_txt(),
+                      config.MAX_ENC_VOCABULARY)
     print("Done")
 
     print("Creating sentence idx files...")
-    data_to_token_ids(TWEETS_TRAIN_ENC_TXT, config.TWEETS_TRAIN_ENC_IDX_TXT, config.VOCAB_ENC_TXT)
-    data_to_token_ids(TWEETS_TRAIN_DEC_TXT, config.TWEETS_TRAIN_DEC_IDX_TXT, config.VOCAB_DEC_TXT)
-    data_to_token_ids(TWEETS_VAL_ENC_TXT, TWEETS_VAL_ENC_IDX_TXT, config.VOCAB_ENC_TXT)
-    data_to_token_ids(TWEETS_VAL_DEC_TXT, TWEETS_VAL_DEC_IDX_TXT, config.VOCAB_DEC_TXT)
+    data_to_token_ids(data_config.tweets_train_enc_txt(),
+                      data_config.tweets_train_enc_idx_txt(),
+                      data_config.vocab_enc_txt())
+
+    data_to_token_ids(data_config.tweets_train_dec_txt(),
+                      data_config.tweets_train_dec_idx_txt(),
+                      data_config.vocab_dec_txt())
+
+    data_to_token_ids(data_config.tweets_val_enc_txt(),
+                      data_config.tweets_val_enc_idx_txt(),
+                      data_config.vocab_enc_txt())
+
+    data_to_token_ids(data_config.tweets_val_dec_txt(),
+                      data_config.tweets_val_dec_idx_txt(),
+                      data_config.vocab_dec_txt())
     print("Done")
 
 

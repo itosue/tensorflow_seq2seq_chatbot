@@ -58,7 +58,7 @@ def read_data_into_buckets(enc_path, dec_path, buckets):
 
 
 # Originally from https://github.com/1228337123/tensorflow-seq2seq-chatbot
-def create_or_restore_model(session, buckets, forward_only, beam_search, beam_size, use_swapped_data=False):
+def create_or_restore_model(session, buckets, forward_only, beam_search, beam_size, data_config):
     # beam search is off for training
     """Create model and initialize or load parameters"""
     print("Creating model...", flush=True)
@@ -81,7 +81,7 @@ def create_or_restore_model(session, buckets, forward_only, beam_search, beam_si
                                        forward_only=forward_only,
                                        beam_size=beam_size)
 
-    ckpt = tf.train.get_checkpoint_state(config.generated_dir())
+    ckpt = tf.train.get_checkpoint_state(data_config.generated_dir())
     # the checkpoint filename has changed in recent versions of tensorflow
     checkpoint_suffix = ".index"
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path + checkpoint_suffix):
@@ -105,19 +105,28 @@ def train():
     #    tf_config = tf.ConfigProto(gpu_options=gpu_options)
     #    tf_config.gpu_options.allocator_type = 'BFC'
 
+    # if we want to train based on (reply, tweet) pair instead of (tweet, reply pair).
+    use_swapped_data = tf.app.flags.FLAGS.use_swapped_data
+    data_config = config.DataConfig(use_swapped_data=use_swapped_data)
+
     # with tf.Session(config=tf_config) as sess:
     with tf.Session() as sess:
 
+        if use_swapped_data:
+            show_progress("Using swapped data for training.")
         show_progress("Setting up data set for each buckets...\n")
-        train_set = read_data_into_buckets(config.TWEETS_TRAIN_ENC_IDX_TXT, config.TWEETS_TRAIN_DEC_IDX_TXT,
+        train_set = read_data_into_buckets(data_config.tweets_train_enc_idx_txt(),
+                                           data_config.tweets_train_dec_idx_txt(),
                                            config.buckets)
-        valid_set = read_data_into_buckets(config.TWEETS_VAL_ENC_IDX_TXT, config.TWEETS_VAL_DEC_IDX_TXT, config.buckets)
+        valid_set = read_data_into_buckets(data_config.tweets_val_enc_idx_txt(),
+                                           data_config.tweets_val_dec_idx_txt(),
+                                           config.buckets)
         show_progress("done\n")
 
         # False for train
         beam_search = False
         model = create_or_restore_model(sess, config.buckets, forward_only=False, beam_search=beam_search,
-                                        beam_size=config.beam_size)
+                                        beam_size=config.beam_size, data_config=data_config)
 
 
         # list of # of data in ith bucket
@@ -133,7 +142,7 @@ def train():
         # Train Loop
         steps = 0
         previous_perplexities = []
-        writer = tf.summary.FileWriter(config.LOGS_DIR, sess.graph)
+        writer = tf.summary.FileWriter(data_config.logs_dir(), sess.graph)
 
         while True:
             bucket_id = next_random_bucket_id(train_buckets_scale)
@@ -163,7 +172,7 @@ def train():
                 continue
 
             # check point
-            checkpoint_path = os.path.join(config.generated_dir(), "seq2seq.ckpt")
+            checkpoint_path = os.path.join(data_config.generated_dir(), "seq2seq.ckpt")
             show_progress("\nSaving checkpoint...\n")
             model.saver.save(sess, checkpoint_path, global_step=model.global_step)
             show_progress("done\n")

@@ -13,7 +13,7 @@ def get_prediction(session, model, enc_vocab, rev_dec_vocab, text):
     encoder_inputs, decoder_inputs, target_weights = model.get_batch({bucket_id: [(token_ids, [])]}, bucket_id)
 
     _, _, _, output_logits = model.step(session, encoder_inputs, decoder_inputs,
-                                     target_weights, bucket_id, True, beam_search=False)
+                                        target_weights, bucket_id, True, beam_search=False)
 
     outputs = [int(np.argmax(logit, axis=1)) for logit in output_logits]
     if data_processer.EOS_ID in outputs:
@@ -21,13 +21,14 @@ def get_prediction(session, model, enc_vocab, rev_dec_vocab, text):
     text = "".join([tf.compat.as_str(rev_dec_vocab[output]) for output in outputs])
     return text
 
+
 #    normal_prediction(bucket_id, decoder_inputs, encoder_inputs, model, rev_dec_vocab, session, target_weights)
 
-    #if config.beam_search:
+# if config.beam_search:
 #        beam_search_prediction(bucket_id, decoder_inputs, encoder_inputs, model, rev_dec_vocab, session,
 #                               target_weights)
 
-#def normal_prediction(bucket_id, decoder_inputs, encoder_inputs, model, rev_dec_vocab, session, target_weights):
+# def normal_prediction(bucket_id, decoder_inputs, encoder_inputs, model, rev_dec_vocab, session, target_weights):
 #    _, _, output_logits = model.step(session, encoder_inputs, decoder_inputs,
 #                                     target_weights, bucket_id, True, beam_search=False)
 #    outputs = [int(np.argmax(logit, axis=1)) for logit in output_logits]
@@ -78,19 +79,21 @@ def get_beam_serch_prediction(session, model, enc_vocab, rev_dec_vocab, text):
         rec = "".join([tf.compat.as_str(rev_dec_vocab[output]) for output in foutputs])
         if rec not in recos:
             recos.add(rec)
-#            print("reply {}".format(i))
-#            i = i + 1
+            #            print("reply {}".format(i))
+            #            i = i + 1
             ret.append(rec)
     return ret
 
 
 class EasyPredictor:
-    def __init__(self, session):
+    def __init__(self, session, data_config):
         self.session = session
-        self.model = train.create_or_restore_model(self.session, config.buckets, forward_only=True, beam_search=config.beam_search, beam_size=config.beam_size)
+        self.model = train.create_or_restore_model(self.session, config.buckets, forward_only=True,
+                                                   beam_search=config.beam_search, beam_size=config.beam_size,
+                                                   data_config=data_config)
         self.model.batch_size = 1
-        self.enc_vocab, _ = data_processer.initialize_vocabulary(config.VOCAB_ENC_TXT)
-        _, self.rev_dec_vocab = data_processer.initialize_vocabulary(config.VOCAB_DEC_TXT)
+        self.enc_vocab, _ = data_processer.initialize_vocabulary(data_config.vocab_enc_txt())
+        _, self.rev_dec_vocab = data_processer.initialize_vocabulary(data_config.vocab_dec_txt())
 
     def predict(self, text):
         text = text.replace('\n', ' ')
@@ -108,9 +111,12 @@ def predict():
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.2)
     tf_config = tf.ConfigProto(gpu_options=gpu_options)
 
+    use_swapped_data = tf.app.flags.FLAGS.use_swapped_data
+    data_config = config.DataConfig(use_swapped_data=use_swapped_data)
+
     with tf.Session(config=tf_config) as sess:
 
-        predictor = EasyPredictor(sess)
+        predictor = EasyPredictor(sess, data_config)
 
         sys.stdout.write("> ")
         sys.stdout.flush()
@@ -126,6 +132,7 @@ def predict():
 
 def main(_):
     predict()
+
 
 if __name__ == '__main__':
     tf.app.run()
