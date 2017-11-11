@@ -201,10 +201,17 @@ class Seq2SeqModel(object):
 
     self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=1)
 
+  def rewards_mutual_information(self, sess, swapped_model, encoder_inputs, decoder_inputs):
+      # todo: devide by N tokens
+      rewards = self.log_prob(sess, self, encoder_inputs, decoder_inputs)
+      rewards = rewards + self.log_prob(sess, swapped_model, decoder_inputs, encoder_inputs)
+      print("rewards={}", rewards)
+      return rewards
+
   def rewards_for_length(self, decoder_inputs):
-#      [print(((decoder_input.tolist().index(
-#          data_processer.EOS_ID)) if data_processer.EOS_ID in decoder_input.tolist() else len(decoder_input)) / len(decoder_input)) for
-#       decoder_input in decoder_inputs]
+      #      [print(((decoder_input.tolist().index(
+      #          data_processer.EOS_ID)) if data_processer.EOS_ID in decoder_input.tolist() else len(decoder_input)) / len(decoder_input)) for
+      #       decoder_input in decoder_inputs]
 
       rewards = []
       for input in decoder_inputs:
@@ -243,9 +250,10 @@ class Seq2SeqModel(object):
           prob = prob * self.softmax(logit)[token_id]
       return np.log(prob) / len(reply_token_ids)
 
-  def step_with_rewards(self, session, encoder_inputs, decoder_inputs, target_weights,
+  def step_with_rewards(self, session, swapped_model, encoder_inputs, decoder_inputs, target_weights,
            bucket_id, forward_only, beam_search):
-      rewards = self.rewards_for_length(decoder_inputs)
+      #rewards = self.rewards_for_length(decoder_inputs)
+      rewards = self.rewards_mutual_information(session, swapped_model, encoder_inputs, decoder_inputs)
       print("rewards={}".format(rewards))
       return self.step(session, encoder_inputs, decoder_inputs, target_weights,
            bucket_id, forward_only, beam_search, rewards=rewards)

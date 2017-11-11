@@ -128,7 +128,6 @@ def train():
         model = create_or_restore_model(sess, config.buckets, forward_only=False, beam_search=beam_search,
                                         beam_size=config.beam_size, data_config=data_config)
 
-
         # list of # of data in ith bucket
         train_bucket_sizes = [len(train_set[b]) for b in range(len(config.buckets))]
         train_total_size = float(sum(train_bucket_sizes))
@@ -137,7 +136,6 @@ def train():
         # This is for choosing randomly bucket based on distribution
         train_buckets_scale = [sum(train_bucket_sizes[:i + 1]) / train_total_size
                                for i in range(len(train_bucket_sizes))]
-
 
         # Train Loop
         steps = 0
@@ -157,10 +155,13 @@ def train():
             #                                                           bucket_id,
             #                                                           forward_only=False,
             #                                                           beam_search=beam_search)
-            _, average_perplexity, summary, _ = model.step_with_rewards(sess, encoder_inputs, decoder_inputs, target_weights,
-                                                           bucket_id,
-                                                           forward_only=False,
-                                                           beam_search=beam_search)
+            _, average_perplexity, summary, _ = model.step_with_rewards(sess, swapped_model=None,
+                                                                        encoder_inputs=encoder_inputs,
+                                                                        decoder_inputs=decoder_inputs,
+                                                                        target_weights=target_weights,
+                                                                        bucket_id=bucket_id,
+                                                                        forward_only=False,
+                                                                        beam_search=beam_search)
 
             #      show_progress("done {0}\n".format(average_perplexity))
 
@@ -202,6 +203,7 @@ def train():
 
 def main(_):
     train()
+
 
 if __name__ == '__main__':
     tf.app.run()
