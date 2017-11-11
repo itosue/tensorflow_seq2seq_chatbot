@@ -66,20 +66,21 @@ def create_or_restore_model(session, buckets, forward_only, beam_search, beam_si
     if config.is_fast_build:
         num_samples = config.MAX_ENC_VOCABULARY - 1
 
-    model = seq2seq_model.Seq2SeqModel(source_vocab_size=config.MAX_ENC_VOCABULARY,
-                                       target_vocab_size=config.MAX_DEC_VOCABULARY,
-                                       buckets=buckets,
-                                       num_samples=num_samples,
-                                       size=config.LAYER_SIZE,
-                                       num_layers=config.NUM_LAYERS,
-                                       max_gradient_norm=config.MAX_GRADIENT_NORM,
-                                       batch_size=config.BATCH_SIZE,
-                                       learning_rate=config.LEARNING_RATE,
-                                       learning_rate_decay_factor=config.LEARNING_RATE_DECAY_FACTOR,
-                                       beam_search=beam_search,
-                                       attention=True,
-                                       forward_only=forward_only,
-                                       beam_size=beam_size)
+    with tf.variable_scope("swapped_model" if data_config.use_swapped_data else "normal_model"):
+        model = seq2seq_model.Seq2SeqModel(source_vocab_size=config.MAX_ENC_VOCABULARY,
+                                           target_vocab_size=config.MAX_DEC_VOCABULARY,
+                                           buckets=buckets,
+                                           num_samples=num_samples,
+                                           size=config.LAYER_SIZE,
+                                           num_layers=config.NUM_LAYERS,
+                                           max_gradient_norm=config.MAX_GRADIENT_NORM,
+                                           batch_size=config.BATCH_SIZE,
+                                           learning_rate=config.LEARNING_RATE,
+                                           learning_rate_decay_factor=config.LEARNING_RATE_DECAY_FACTOR,
+                                           beam_search=beam_search,
+                                           attention=True,
+                                           forward_only=forward_only,
+                                           beam_size=beam_size)
 
     ckpt = tf.train.get_checkpoint_state(data_config.generated_dir())
     # the checkpoint filename has changed in recent versions of tensorflow
