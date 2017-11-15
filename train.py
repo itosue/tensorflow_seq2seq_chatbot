@@ -82,15 +82,15 @@ def create_or_restore_model(session, buckets, forward_only, beam_search, beam_si
                                            forward_only=forward_only,
                                            beam_size=beam_size)
 
-    ckpt = tf.train.get_checkpoint_state(data_config.generated_dir())
-    # the checkpoint filename has changed in recent versions of tensorflow
-    checkpoint_suffix = ".index"
-    if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path + checkpoint_suffix):
-        model.saver.restore(session, ckpt.model_checkpoint_path)
-        print("Loaded model parameters from %s" % ckpt.model_checkpoint_path)
-    else:
-        print("Created model with fresh parameters.")
-        session.run(tf.global_variables_initializer())
+        ckpt = tf.train.get_checkpoint_state(data_config.generated_dir())
+        # the checkpoint filename has changed in recent versions of tensorflow
+        checkpoint_suffix = ".index"
+        if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path + checkpoint_suffix):
+            model.saver.restore(session, ckpt.model_checkpoint_path)
+            print("Loaded model parameters from %s" % ckpt.model_checkpoint_path)
+        else:
+            print("Created model with fresh parameters.")
+            session.run(tf.global_variables_initializer())
     return model
 
 
