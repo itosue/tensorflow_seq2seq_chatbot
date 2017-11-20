@@ -252,8 +252,9 @@ class Seq2SeqModel(object):
 
   def step_with_rewards(self, session, swapped_model, encoder_inputs, decoder_inputs, target_weights,
            bucket_id, forward_only, beam_search):
-      rewards = self.rewards_for_length(decoder_inputs)
-      #rewards = self.rewards_mutual_information(session, swapped_model, encoder_inputs, decoder_inputs)
+      # rewards = self.rewards_for_length(decoder_inputs)
+      if swapped_model:
+          rewards = self.rewards_mutual_information(session, swapped_model, encoder_inputs, decoder_inputs)
       print("rewards={}".format(rewards))
       return self.step(session, encoder_inputs, decoder_inputs, target_weights,
            bucket_id, forward_only, beam_search, rewards=rewards)

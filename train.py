@@ -110,6 +110,21 @@ def train():
     use_swapped_data = tf.app.flags.FLAGS.use_swapped_data
     data_config = config.DataConfig(use_swapped_data=use_swapped_data)
 
+    should_train_with_rewards = tf.app.flags.FLAGS.use_rewards
+
+    swapped_model = None
+    if should_train_with_rewards:
+        swapped_data_config = config.DataConfig(use_swapped_data=True)
+        swapped_model_graph = tf.Graph()
+        with swapped_model_graph.as_default():
+            swapped_model_session = tf.Session(graph=swapped_model_graph)
+            swapped_model = create_or_restore_model(swapped_model_session,
+                                                    config.buckets,
+                                                    forward_only=False,
+                                                    beam_search=False,
+                                                    beam_size=config.beam_size,
+                                                    data_config=swapped_data_config)
+
     # with tf.Session(config=tf_config) as sess:
     with tf.Session() as sess:
 
@@ -156,7 +171,7 @@ def train():
             #                                                           bucket_id,
             #                                                           forward_only=False,
             #                                                           beam_search=beam_search)
-            _, average_perplexity, summary, _ = model.step_with_rewards(sess, swapped_model=None,
+            _, average_perplexity, summary, _ = model.step_with_rewards(sess, swapped_model=swapped_model,
                                                                         encoder_inputs=encoder_inputs,
                                                                         decoder_inputs=decoder_inputs,
                                                                         target_weights=target_weights,
@@ -201,6 +216,8 @@ def train():
                 eval_ppx = math.exp(average_perplexity) if average_perplexity < 300 else float('inf')
                 print("  eval: bucket %d perplexity %.2f" % (bucket_id, eval_ppx))
 
+
+tf.app.flags.DEFINE_boolean("use_rewards", False, "Train using rewards.")
 
 def main(_):
     train()
