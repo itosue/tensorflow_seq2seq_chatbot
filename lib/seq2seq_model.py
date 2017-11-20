@@ -251,7 +251,35 @@ class Seq2SeqModel(object):
       return np.log(prob) / len(reply_token_ids)
 
   def log_prob_batch(self, session, model, tweet_tokens_ids, reply_tokens_ids):
-      return 0
+      bucket_id = self.find_bucket_id(tweet_tokens_ids, reply_tokens_ids)
+      feed_dict = {bucket_id: zip(tweet_tokens_ids, reply_tokens_ids)}
+      encoder_inputs, decoder_inputs, target_weights = self.get_batch(feed_dict, bucket_id, type='rl')
+
+      _, _, _, output_logits = model.step(session, encoder_inputs, decoder_inputs,
+                                          target_weights, bucket_id, forward_only=True, beam_search=False)
+      output_logits_t = np.transpose(output_logits, (1, 0, 2))
+      sum_p = []
+      for i, (reply_tokens, logits) in enumerate(zip(reply_tokens_ids, output_logits_t)):
+          p = 1
+          for t, logit in zip(reply_tokens, logits):
+              norm = self.softmax(logit)[t]
+              p *= norm
+          if p < 1e-100:
+              p = 1e-100
+          p = np.log(p) / len(reply_tokens)
+          print("logProb: p: %s" % (p))
+          sum_p.append(p)
+      re = np.sum(sum_p) / len(sum_p)
+      return re
+
+
+  def find_bucket_id(self, tweet_tokens_ids, reply_tokens_ids):
+      best_bucket_ids = []
+      for i in xrange(len(tweet_tokens_ids)):
+          best_bucket_ids.append(min([b for b in xrange(len(self.buckets))
+                            if self.buckets[b][0] >= len(tweet_tokens_ids[i]) and reply_tokens_ids[b][1] >= len(reply_tokens_ids[i])]))
+      return max(best_bucket_ids)
+
 
 
   def step_with_rewards(self, session, swapped_model, encoder_inputs, decoder_inputs, target_weights,
@@ -339,7 +367,7 @@ class Seq2SeqModel(object):
       else:
           return None, outputs[0], outputs[1], outputs[2:]  # No gradient norm, loss, outputs.
 
-  def get_batch(self, data, bucket_id):
+  def get_batch(self, data, bucket_id, type='default'):
     """Get a random batch of data from the specified bucket, prepare for step.
 
     To feed data in step(..) it must be a list of batch-major vectors, while
@@ -358,10 +386,18 @@ class Seq2SeqModel(object):
     encoder_size, decoder_size = self.buckets[bucket_id]
     encoder_inputs, decoder_inputs = [], []
 
+    if type == 'rl':
+        data_list = list(data[bucket_id])
+
+    batch_size = self.batch_size
+
     # Get a random batch of encoder and decoder inputs from data,
     # pad them if needed, reverse encoder inputs and add GO to decoder.
-    for _ in xrange(self.batch_size):
-      encoder_input, decoder_input = random.choice(data[bucket_id])
+    for i in range(batch_size):
+      if type == 'rl':
+          encoder_input, decoder_input = data_list[i % len(data_list)]
+      else:
+          encoder_input, decoder_input = random.choice(data[bucket_id])
 
       # Encoder inputs are padded and then reversed.
       encoder_pad = [PAD_ID] * (encoder_size - len(encoder_input))
@@ -379,17 +415,17 @@ class Seq2SeqModel(object):
     for length_idx in xrange(encoder_size):
       batch_encoder_inputs.append(
           np.array([encoder_inputs[batch_idx][length_idx]
-                    for batch_idx in xrange(self.batch_size)], dtype=np.int32))
+                    for batch_idx in xrange(batch_size)], dtype=np.int32))
 
     # Batch decoder inputs are re-indexed decoder_inputs, we create weights.
     for length_idx in xrange(decoder_size):
       batch_decoder_inputs.append(
           np.array([decoder_inputs[batch_idx][length_idx]
-                    for batch_idx in xrange(self.batch_size)], dtype=np.int32))
+                    for batch_idx in xrange(batch_size)], dtype=np.int32))
 
       # Create target_weights to be 0 for targets that are padding.
-      batch_weight = np.ones(self.batch_size, dtype=np.float32)
-      for batch_idx in xrange(self.batch_size):
+      batch_weight = np.ones(batch_size, dtype=np.float32)
+      for batch_idx in xrange(batch_size):
         # We set weight to 0 if the corresponding target is a PAD symbol.
         # The corresponding target is decoder_input shifted by 1 forward.
         if length_idx < decoder_size - 1:
