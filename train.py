@@ -22,6 +22,12 @@ def log_prob(session, model, enc_vocab, dec_vocab, tweet, reply):
     return model.log_prob(session, model, tweet_token_ids, reply_token_ids)
 
 
+def log_prob_batch(session, model, enc_vocab, dec_vocab, tweets, replies):
+    tweet_tokens_ids = [data_processer.sentence_to_token_ids(tweet, enc_vocab) for tweet in tweets]
+    reply_tokens_ids = [data_processer.sentence_to_token_ids(reply, dec_vocab) for reply in replies]
+    return model.log_prob_batch(session, model, tweet_tokens_ids, reply_tokens_ids)
+
+
 def read_data_into_buckets(enc_path, dec_path, buckets):
     """Read tweets and reply and put them into buckets based on their length
 

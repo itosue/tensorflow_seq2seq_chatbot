@@ -36,7 +36,9 @@ def main(_):
         dec_vocab, _ = data_processer.initialize_vocabulary(data_config.vocab_dec_txt())
         with sess.as_default():
             log_prob = train.log_prob(sess, model, enc_vocab, dec_vocab, "hige", "ますです")
+            log_prob_batch = train.log_prob_batch(sess, model, enc_vocab, dec_vocab, ["hige"], ["ますです"])
     print(log_prob)
+    print(log_prob_batch)
 
 
 if __name__ == '__main__':

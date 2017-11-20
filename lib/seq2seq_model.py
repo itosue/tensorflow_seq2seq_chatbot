@@ -250,6 +250,10 @@ class Seq2SeqModel(object):
           prob = prob * self.softmax(logit)[token_id]
       return np.log(prob) / len(reply_token_ids)
 
+  def log_prob_batch(self, session, model, tweet_tokens_ids, reply_tokens_ids):
+      return 0
+
+
   def step_with_rewards(self, session, swapped_model, encoder_inputs, decoder_inputs, target_weights,
            bucket_id, forward_only, beam_search):
       # rewards = self.rewards_for_length(decoder_inputs)
