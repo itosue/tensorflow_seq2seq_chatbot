@@ -201,12 +201,12 @@ class Seq2SeqModel(object):
 
     self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=1)
 
-  def rewards_mutual_information(self, sess, swapped_model, encoder_inputs, decoder_inputs):
+  def rewards_mutual_information(self, sess, swapped_session, swapped_model, encoder_inputs, decoder_inputs):
       # todo: devide by N tokens
-      rewards = self.log_prob(sess, self, encoder_inputs, decoder_inputs)
-      rewards = rewards + self.log_prob(sess, swapped_model, decoder_inputs, encoder_inputs)
+      rewards = self.log_prob_batch(sess, self, encoder_inputs, decoder_inputs)
+      rewards = rewards + self.log_prob_batch(swapped_session, swapped_model, decoder_inputs, encoder_inputs)
       print("rewards={}", rewards)
-      return rewards
+      return [rewards for _ in xrange(len(self.buckets))]
 
   def rewards_for_length(self, decoder_inputs):
       #      [print(((decoder_input.tolist().index(
@@ -273,21 +273,24 @@ class Seq2SeqModel(object):
       return re
 
 
+  # これがばぐってる。 tweet_tokens_ids は matrix の形が違う
   def find_bucket_id(self, tweet_tokens_ids, reply_tokens_ids):
-      best_bucket_ids = []
-      for i in xrange(len(tweet_tokens_ids)):
-          best_bucket_ids.append(min([b for b in xrange(len(self.buckets))
-                            if self.buckets[b][0] >= len(tweet_tokens_ids[i]) and reply_tokens_ids[b][1] >= len(reply_tokens_ids[i])]))
-      return max(best_bucket_ids)
+      encoder_size = len(tweet_tokens_ids)
+      decoder_size = len(reply_tokens_ids)
+      print("encoder_size={} decoder_size={} buckets={}".format(encoder_size, decoder_size, self.buckets))
+      bucket_id = min([b for b in range(len(self.buckets))
+                       if self.buckets[b][0] >= encoder_size and self.buckets[b][1] >= decoder_size])
+      return bucket_id
 
 
-
-  def step_with_rewards(self, session, swapped_model, encoder_inputs, decoder_inputs, target_weights,
+  def step_with_rewards(self, session, swapped_session, swapped_model, encoder_inputs, decoder_inputs, target_weights,
            bucket_id, forward_only, beam_search):
       # rewards = self.rewards_for_length(decoder_inputs)
       if swapped_model:
-          rewards = self.rewards_mutual_information(session, swapped_model, encoder_inputs, decoder_inputs)
-      print("rewards={}".format(rewards))
+          rewards = self.rewards_mutual_information(session, swapped_session, swapped_model, encoder_inputs, decoder_inputs)
+          print("rewards={}".format(rewards))
+      else:
+          rewards = None
       return self.step(session, encoder_inputs, decoder_inputs, target_weights,
            bucket_id, forward_only, beam_search, rewards=rewards)
 
@@ -401,12 +404,14 @@ class Seq2SeqModel(object):
 
       # Encoder inputs are padded and then reversed.
       encoder_pad = [PAD_ID] * (encoder_size - len(encoder_input))
-      encoder_inputs.append(list(reversed(encoder_input + encoder_pad)))
+      encoder_inputs.append(list(reversed(list(encoder_input) + encoder_pad)))
 
       # Decoder inputs get an extra "GO" symbol, and are padded then.
       decoder_pad_size = decoder_size - len(decoder_input) - 1
-      decoder_inputs.append([GO_ID] + decoder_input +
+      decoder_inputs.append([GO_ID] + list(decoder_input) +
                             [PAD_ID] * decoder_pad_size)
+
+    print("size check {} {} batch_size={}".format(len(encoder_inputs), len(decoder_inputs), batch_size))
 
     # Now we create batch-major vectors from the data selected above.
     batch_encoder_inputs, batch_decoder_inputs, batch_weights = [], [], []
@@ -416,6 +421,8 @@ class Seq2SeqModel(object):
       batch_encoder_inputs.append(
           np.array([encoder_inputs[batch_idx][length_idx]
                     for batch_idx in xrange(batch_size)], dtype=np.int32))
+
+    print("size check enc {}".format(len(batch_encoder_inputs)))
 
     # Batch decoder inputs are re-indexed decoder_inputs, we create weights.
     for length_idx in xrange(decoder_size):
@@ -433,4 +440,5 @@ class Seq2SeqModel(object):
         if length_idx == decoder_size - 1 or target == PAD_ID:
           batch_weight[batch_idx] = 0.0
       batch_weights.append(batch_weight)
+    print("size check dec {}".format(len(batch_decoder_inputs)))
     return batch_encoder_inputs, batch_decoder_inputs, batch_weights

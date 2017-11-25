@@ -177,7 +177,9 @@ def train():
             #                                                           bucket_id,
             #                                                           forward_only=False,
             #                                                           beam_search=beam_search)
-            _, average_perplexity, summary, _ = model.step_with_rewards(sess, swapped_model=swapped_model,
+            _, average_perplexity, summary, _ = model.step_with_rewards(sess,
+                                                                        swapped_session=swapped_model_session,
+                                                                        swapped_model=swapped_model,
                                                                         encoder_inputs=encoder_inputs,
                                                                         decoder_inputs=decoder_inputs,
                                                                         target_weights=target_weights,
