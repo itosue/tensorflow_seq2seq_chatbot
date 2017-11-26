@@ -20,11 +20,11 @@ Main differences of my implementation are
 1. Train! Train may take a few hours to 1 day, and it never stops. Once you think it's ready, just Ctrl-C. Model parameters are saved in generated/ directory.
 
     python train.py
-    
+
 1. Talk to him!
-    
+
     python predict.py
-    
+
 # Twitter Bot
 By running twitter_listenr.py and twitter_replier.py, you can run this chatbot on twitter.
 
@@ -32,3 +32,28 @@ By running twitter_listenr.py and twitter_replier.py, you can run this chatbot o
 Here are some interesting conversations with him.
 ![sample1](http://cdn-ak.f.st-hatena.com/images/fotolife/h/higepon/20170428/20170428211132.jpg?1493381493?changed=1493381493)
 ![sample2](http://cdn-ak.f.st-hatena.com/images/fotolife/h/higepon/20170428/20170428211230.jpg?1493381551?changed=1493381551)
+
+# Experimental
+I'm experimenting with Reinforcement Learning approache. See [Deep Reinforcement Learning for Dialogue Generation](https://github.com/higepon/tensorflow_seq2seq_chatbot/wiki/Deep-Reinforcement-Learning-for-Dialogue-Generation).
+
+Note that we need pre-trained swapped model, which is trained with tweets and replies swapped.
+
+## How to train and predict
+````
+# Create data set for normal training.
+% python data_processer.py --use_small_data=1 --use_swapped_data=0
+
+# Create data set for swapped model training.
+% python data_processer.py --use_small_data=1 --use_swapped_data=1
+
+# Train swapped model.
+% python train.py --use_small_data=1 --use_swapped_data=1
+
+# See if swapped model is working.
+% python predict.py --use_small_data=1 --use_swapped_data=1
+
+# Make the swapped non-trainable.
+
+# Train normal model with rewards.
+% python train.py --use_small_data=1 --use_rewards=1
+````
