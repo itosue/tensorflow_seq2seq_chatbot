@@ -277,7 +277,7 @@ class Seq2SeqModel(object):
   def find_bucket_id(self, tweet_tokens_ids, reply_tokens_ids):
       encoder_size = len(tweet_tokens_ids)
       decoder_size = len(reply_tokens_ids)
-      print("encoder_size={} decoder_size={} buckets={}".format(encoder_size, decoder_size, self.buckets))
+
       bucket_id = min([b for b in range(len(self.buckets))
                        if self.buckets[b][0] >= encoder_size and self.buckets[b][1] >= decoder_size])
       return bucket_id
@@ -288,7 +288,6 @@ class Seq2SeqModel(object):
       # rewards = self.rewards_for_length(decoder_inputs)
       if swapped_model:
           rewards = self.rewards_mutual_information(session, swapped_session, swapped_model, encoder_inputs, decoder_inputs)
-          print("rewards={}".format(rewards))
       else:
           rewards = None
       return self.step(session, encoder_inputs, decoder_inputs, target_weights,
@@ -411,7 +410,6 @@ class Seq2SeqModel(object):
       decoder_inputs.append([GO_ID] + list(decoder_input) +
                             [PAD_ID] * decoder_pad_size)
 
-    print("size check {} {} batch_size={}".format(len(encoder_inputs), len(decoder_inputs), batch_size))
 
     # Now we create batch-major vectors from the data selected above.
     batch_encoder_inputs, batch_decoder_inputs, batch_weights = [], [], []
@@ -422,7 +420,6 @@ class Seq2SeqModel(object):
           np.array([encoder_inputs[batch_idx][length_idx]
                     for batch_idx in xrange(batch_size)], dtype=np.int32))
 
-    print("size check enc {}".format(len(batch_encoder_inputs)))
 
     # Batch decoder inputs are re-indexed decoder_inputs, we create weights.
     for length_idx in xrange(decoder_size):
@@ -440,5 +437,4 @@ class Seq2SeqModel(object):
         if length_idx == decoder_size - 1 or target == PAD_ID:
           batch_weight[batch_idx] = 0.0
       batch_weights.append(batch_weight)
-    print("size check dec {}".format(len(batch_decoder_inputs)))
     return batch_encoder_inputs, batch_decoder_inputs, batch_weights

@@ -119,6 +119,7 @@ def train():
     should_train_with_rewards = tf.app.flags.FLAGS.use_rewards
 
     swapped_model = None
+    swapped_model_session = None
     if should_train_with_rewards:
         swapped_data_config = config.DataConfig(use_swapped_data=True)
         swapped_model_graph = tf.Graph()

@@ -52,8 +52,6 @@ Note that we need pre-trained swapped model, which is trained with tweets and re
 # See if swapped model is working.
 % python predict.py --use_small_data=1 --use_swapped_data=1
 
-# Make the swapped non-trainable.
-
 # Train normal model with rewards.
 % python train.py --use_small_data=1 --use_rewards=1
 ````
