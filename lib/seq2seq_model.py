@@ -190,8 +190,10 @@ class Seq2SeqModel(object):
       self.gradient_norms = []
       self.updates = []
       opt = tf.train.GradientDescentOptimizer(self.learning_rate)
+      self.loss_with_rewards_summaries = []
       for b in xrange(len(buckets)):
         adjusted_losses = tf.multiply(self.losses[b], self.rewards[b])
+        self.loss_with_rewards_summaries.append(tf.summary.scalar("loss_with_rewards_bucket_{}".fromat(b), self.loss_with_rewards_summaries[b]))
         gradients = tf.gradients(adjusted_losses, params)
         clipped_gradients, norm = tf.clip_by_global_norm(gradients,
                                                          max_gradient_norm)
@@ -348,7 +350,8 @@ class Seq2SeqModel(object):
       output_feed = [self.updates[bucket_id],  # Update Op that does SGD.
                      self.gradient_norms[bucket_id],  # Gradient norm.
                      self.losses[bucket_id],  # Loss for this batch.
-                     self.train_loss_summaries[bucket_id]]  # Summary op for Train Loss
+                     self.train_loss_summaries[bucket_id],   # Summary op for Train Loss
+                     self.loss_with_rewards_summaries[bucket_id]]
     else:
         if beam_search:
             output_feed = [self.beam_path[bucket_id]]  # Loss for this batch.
@@ -362,7 +365,7 @@ class Seq2SeqModel(object):
     # print bucket_id
     outputs = session.run(output_feed, input_feed)
     if not forward_only:
-      return outputs[1], outputs[2], outputs[3], None  # Gradient norm, loss, no outputs.
+      return outputs[1], outputs[2], outputs[3], outputs[4], None  # Gradient norm, loss, no outputs.
     else:
       if beam_search:
           return outputs[0], outputs[1], outputs[2:]  # No gradient norm, loss, outputs.

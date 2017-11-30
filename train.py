@@ -178,7 +178,7 @@ def train():
             #                                                           bucket_id,
             #                                                           forward_only=False,
             #                                                           beam_search=beam_search)
-            _, average_perplexity, summary, _ = model.step_with_rewards(sess,
+            _, average_perplexity, summary, loss_with_rewards_summary, _ = model.step_with_rewards(sess,
                                                                         swapped_session=swapped_model_session,
                                                                         swapped_model=swapped_model,
                                                                         encoder_inputs=encoder_inputs,
@@ -193,6 +193,7 @@ def train():
             steps = steps + 1
             if steps % 2 == 0:
                 writer.add_summary(summary, steps)
+                writer.add_summary(loss_with_rewards_summary, steps)
                 show_progress(".")
             if steps % 50 != 0:
                 continue
